@@ -1,0 +1,19 @@
+Package: CFDscoRe
+Title: CFD Score Calculation
+Version: 1.0.0
+Authors@R: 
+    person("Sol", "Shenker", , "sol.shenker@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0003-3010-9413"))
+Description: Implements the CFD calculation (including bulges) described in Doench et al 2016
+License: Apache License (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    dplyr,
+    magrittr,
+    purrr,
+    tidyr
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
