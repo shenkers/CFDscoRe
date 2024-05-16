@@ -9,8 +9,9 @@ package_state <- new.env()
 #' Calculates the CFD Score for a given guide/target site alignment.
 #'
 #' @param rna Character representation of the guide portion of a guide/target site alignment. Should be represented as DNA, valid characters include ['A','C','G','T','-']. Must be 20 nucleotides long.
-#' @param rna Character representation of the target portion of a guide/target site alignment. Should be represented as DNA, valid characters include ['A','C','G','T','-']. No length requirement.
+#' @param dna Character representation of the target portion of a guide/target site alignment. Should be represented as DNA, valid characters include ['A','C','G','T','-']. No length requirement.
 #' @param pam Character representation of the inferred PAM. A 'GG' PAM will receive no penalty.
+#' @return the CFD score, a numeric quantity between 0 and 1 that represents the fraction of guide activity
 #' @export
 cfd_score <- function(rna,dna,pam){
   if( nchar(rna) != nchar(dna) ){
