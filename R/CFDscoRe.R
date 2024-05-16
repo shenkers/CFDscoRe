@@ -13,11 +13,42 @@ package_state <- new.env()
 #' @param pam Character representation of the inferred PAM. A 'GG' PAM will receive no penalty.
 #' @export
 cfd_score <- function(rna,dna,pam){
+  if( nchar(rna) != nchar(dna) ){
+      stop('Invalid alignment, guide and target sequences are not equal length')
+  }
   position_table <- alignment_to_position_table(toupper(rna),toupper(dna))
+  validate_input( position_table, pam )
   classified_positions <- classify_positions(position_table)
   score_positions(classified_positions,pam)
 }
 
+validate_input <- function( position_table, pam ){
+    guide_length <- position_table %>%
+        filter(rna != '-') %>%
+        nrow()
+
+    allowed_characters <- c( 'A','T','G','C','-' )
+
+    if( guide_length != 20){ stop('CFD can only be calculated for guides that are 20nt long' ) }
+
+    if( !grepl('^[ATGC]{2,2}$', pam) ){ stop('Invalid PAM sequence, must be length 2 and contain only (A,C,G,T)') }
+
+    if( length( setdiff(position_table$rna, allowed_characters) ) > 0 ){
+        stop('Invalid guide sequence')
+    }
+
+    if( length( setdiff(position_table$dna, allowed_characters) ) > 0 ){
+        stop('Invalid target sequence')
+    }
+
+    if( nrow( filter(position_table, rna == '-' & dna == '-') > 1 ) ){
+        stop('Invalid alignment, all positions must be either match, mismatch, DNA bulge, or RNA bulge.')
+    }
+
+    if( nrow( filter(position_table, ( rna == '-' | dna == '-' ) & index == 1 ) > 1 ) ){
+        stop('Invalid alignment, CFD is undefined for a bulge at position 1')
+    }
+}
 
 alignment_to_position_table <- function(rna,dna){
   tibble(
