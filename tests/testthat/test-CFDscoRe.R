@@ -53,4 +53,14 @@ test_that("PAM proximal mismatches result in lower scores in context of DNA bulg
             'CAGTGCCATGTGTACCATCAC',
             'GG')
     )
+    expect_equal(
+        pinello_cfd_score(
+            'CA-TGCCGTGTGTACCATGAG',
+            'CAGTGCCATGTGTACCATCAG',
+            'GG'),
+        pinello_cfd_score(
+            'CA-TGCCGTGTGTACCATGAG',
+            'CAGTGCCATGTGTACCATCAC',
+            'GG')
+    )
 })

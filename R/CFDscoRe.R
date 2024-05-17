@@ -23,6 +23,24 @@ cfd_score <- function(rna,dna,pam){
   score_positions(classified_positions,pam)
 }
 
+#' Pinello CFD Score
+#'
+#' Calculates the CFD Score for a given guide/target site alignment.
+#'
+#' @param rna Character representation of the guide portion of a guide/target site alignment. Should be represented as DNA, valid characters include ['A','C','G','T','-']. Must be 20 nucleotides long.
+#' @param dna Character representation of the target portion of a guide/target site alignment. Should be represented as DNA, valid characters include ['A','C','G','T','-']. No length requirement.
+#' @param pam Character representation of the inferred PAM. A 'GG' PAM will receive no penalty.
+#' @return the CFD score, a numeric quantity between 0 and 1 that represents the fraction of guide activity
+#' @export
+pinello_cfd_score <- function(rna,dna,pam){
+  if( nchar(rna) != nchar(dna) ){
+      stop('Invalid alignment, guide and target sequences are not equal length')
+  }
+  position_table <- pinello_alignment_to_position_table(toupper(rna),toupper(dna))
+  classified_positions <- classify_positions(position_table)
+  score_positions(classified_positions,pam)
+}
+
 validate_input <- function( position_table, pam ){
     guide_length <- position_table %>%
         filter(rna != '-') %>%
@@ -49,6 +67,15 @@ validate_input <- function( position_table, pam ){
     if( nrow( filter(position_table, ( rna == '-' | dna == '-' ) & index == 1 ) > 1 ) ){
         stop('Invalid alignment, CFD is undefined for a bulge at position 1')
     }
+}
+
+pinello_alignment_to_position_table <- function(rna,dna){
+  tibble(
+    rna = strsplit(rna,"")[[1]],
+    dna = strsplit(dna,"")[[1]]
+  ) %>%
+    mutate(index=row_number()) %>%
+    filter(index < 21)
 }
 
 alignment_to_position_table <- function(rna,dna){
