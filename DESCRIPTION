@@ -13,7 +13,9 @@ Imports:
     dplyr,
     magrittr,
     purrr,
-    tidyr
+    tidyr,
+    Rcpp
+LinkingTo: Rcpp
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
