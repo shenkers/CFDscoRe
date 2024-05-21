@@ -337,16 +337,6 @@ Rcpp::List optimal_alignment( Rcpp::CharacterVector vpenalty_dir, Rcpp::Characte
         Rcpp::Named("score") = score
     );
 }
-// [[Rcpp::export]]
-Rcpp::List optimal_alignment2( Rcpp::CharacterVector& query, Rcpp::CharacterVector& genome ) {
-    Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[0]) );
-    Rcpp::NumericVector score = { 0 };
-    return Rcpp::List::create(
-        Rcpp::Named("score") = score,
-        Rcpp::Named("test") = Rcpp::CharacterVector::create( Rcpp::as<string>(query[0]) ),
-        Rcpp::Named("test2") = Rcpp::CharacterVector::create( Rcpp::as<string>(genome[0]) )
-    );
-}
 
 int main()
 {

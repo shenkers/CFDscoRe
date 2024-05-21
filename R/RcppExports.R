@@ -2,10 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 optimal_alignment <- function(vpenalty_dir, query, genome) {
-    .Call('_CFDscoRe_optimal_alignment', PACKAGE = 'CFDscoRe', vpenalty_dir, query, genome)
-}
-
-optimal_alignment2 <- function(query, genome) {
-    .Call('_CFDscoRe_optimal_alignment2', PACKAGE = 'CFDscoRe', query, genome)
+    .Call(`_CFDscoRe_optimal_alignment`, vpenalty_dir, query, genome)
 }
 
