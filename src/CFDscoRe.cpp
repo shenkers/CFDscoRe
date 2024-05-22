@@ -234,10 +234,8 @@ map<string,double> load_pam_table( Rcpp::DataFrame data_frame ) {
 
     Rcpp::CharacterVector pams = data_frame["pam"];
     Rcpp::NumericVector activity = data_frame["activity"];
-    Rcpp::Rcout << "loading pams\n";
 
     for( int i=0; i< data_frame.nrows(); i++ ){
-        Rcpp::Rcout << "i " << i << "\n";
 
         string pam = Rcpp::as<string>(pams[i]);
         double score = activity[i];
