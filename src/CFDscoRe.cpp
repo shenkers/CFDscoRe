@@ -187,63 +187,40 @@ inline pair<string, string> get_optimal_alignment() {
     vector<vector<Traceback>> traceback;
 };
 
-vector<map<string,double>> load_indel_table( string csv_path ) {
-    std::ifstream file(csv_path);
+vector<map<string,double>> load_indel_table( Rcpp::DataFrame data_frame ) {
 
     vector<map<string,double>> table(20);
 
-    std::string line;
-    // skip header
-    std::getline(file, line);
-    while(std::getline(file, line)) {
-        std::istringstream ss(line);
-        std::string token;
+    Rcpp::IntegerVector indices = data_frame["index"];
+    Rcpp::CharacterVector xnas = data_frame[0];
+    Rcpp::NumericVector activity = data_frame["activity"];
 
-        // Read each column separated by comma
-        int index;
-        string xna;
-        float score;
+    for( int i=0; i< data_frame.nrows(); i++ ){
 
-        if (std::getline(ss, token, ','))
-            index = std::stoi(token); // Convert string to int
-        if (std::getline(ss, token, ','))
-            xna = token; // Extract first character
-        if (std::getline(ss, token, ','))
-            score = std::stof(token); // Convert string to float
+        int index = indices[i];
+        string xna = Rcpp::as<string>(xnas[i]);
+        float score = activity[i];
 
         table[index-1][xna] = log(score);
-        // Output the values
     }
 
     return table;
 }
 
-vector<map<pair<string,string>,double>> load_mismatch_table( string csv_path ) {
-    std::ifstream file(csv_path);
-
+vector<map<pair<string,string>,double>> load_mismatch_table( Rcpp::DataFrame data_frame ) {
     vector<map<pair<string,string>,double>> table(20);
 
-    std::string line;
-    // skip header
-    std::getline(file, line);
-    while(std::getline(file, line)) {
-        std::istringstream ss(line);
-        std::string token;
+    Rcpp::IntegerVector indices = data_frame["index"];
+    Rcpp::CharacterVector rnas = data_frame["rna"];
+    Rcpp::CharacterVector dnas = data_frame["dna"];
+    Rcpp::NumericVector activity = data_frame["activity"];
 
-        // Read each column separated by comma
-        int index;
-        string rna;
-        string dna;
-        double score;
+    for( int i=0; i< data_frame.nrows(); i++ ){
 
-        if (std::getline(ss, token, ','))
-            index = std::stoi(token); // Convert string to int
-        if (std::getline(ss, token, ','))
-            rna = token; // Extract first character
-        if (std::getline(ss, token, ','))
-            dna = token; // Extract first character
-        if (std::getline(ss, token, ','))
-            score = std::stod(token); // Convert string to float
+        int index = indices[i];
+        string rna = Rcpp::as<string>(rnas[i]);
+        string dna = Rcpp::as<string>(dnas[i]);
+        double score = activity[i];
 
         table[index-1][make_pair(rna,dna)] = log(score);
     }
@@ -251,26 +228,19 @@ vector<map<pair<string,string>,double>> load_mismatch_table( string csv_path ) {
     return table;
 }
 
-map<string,double> load_pam_table( string csv_path ) {
-    std::ifstream file(csv_path);
+map<string,double> load_pam_table( Rcpp::DataFrame data_frame ) {
 
     map<string,double> table;
 
-    std::string line;
-    // skip header
-    std::getline(file, line);
-    while(std::getline(file, line)) {
-        std::istringstream ss(line);
-        std::string token;
+    Rcpp::CharacterVector pams = data_frame["pam"];
+    Rcpp::NumericVector activity = data_frame["activity"];
+    Rcpp::Rcout << "loading pams\n";
 
-        // Read each column separated by comma
-        string pam;
-        double score;
+    for( int i=0; i< data_frame.nrows(); i++ ){
+        Rcpp::Rcout << "i " << i << "\n";
 
-        if (std::getline(ss, token, ','))
-            pam = token; // Extract first character
-        if (std::getline(ss, token, ','))
-            score = std::stod(token); // Convert string to float
+        string pam = Rcpp::as<string>(pams[i]);
+        double score = activity[i];
 
         table[pam] = log(score);
     }
@@ -319,12 +289,11 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
 }
 
 // [[Rcpp::export]]
-Rcpp::List optimal_alignment( Rcpp::CharacterVector vpenalty_dir, Rcpp::CharacterVector query, Rcpp::CharacterVector genome ) {
-    string penalty_dir = Rcpp::as<string>(vpenalty_dir[0]);
-    mismatch_table = load_mismatch_table( penalty_dir + "/mismatch.csv" );
-    insert_table = load_indel_table(penalty_dir + "/rna_bulge.csv");
-    delete_table = load_indel_table(penalty_dir + "/dna_bulge.csv");
-    pam_table = load_pam_table(penalty_dir + "/pams.csv");
+Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome ) {
+    mismatch_table = load_mismatch_table( activity_scores["mismatch"] );
+    insert_table = load_indel_table( activity_scores["rna_bulge"] );
+    delete_table = load_indel_table( activity_scores["dna_bulge"] );
+    pam_table = load_pam_table( activity_scores["pam"] );
     Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[0]) );
     Rcpp::CharacterVector guide = { optimal.guide };
     Rcpp::CharacterVector target = { optimal.target };

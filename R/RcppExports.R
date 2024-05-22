@@ -2,7 +2,6 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 optimal_alignment <- function(query, genome) {
-    penalty_dir <- fs::path_package("extdata","penalties/",package='CFDscoRe')
-    .Call(`_CFDscoRe_optimal_alignment`, penalty_dir, query, genome)
+    .Call(`_CFDscoRe_optimal_alignment`, package_state$activity_scores, query, genome)
 }
 
