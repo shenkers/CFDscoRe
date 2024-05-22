@@ -252,9 +252,9 @@ Cas9Alignment optimal_target(string guide, string genome){
 
     Cas9Alignment optimal_alignment;
 
-    for(int i=0; i<genome.length()-22; i++){
-        string target = genome.substr(i,20);
-        string pam = genome.substr(i+21,2);
+    for( int i=genome.length() -3; i > 0; i--){
+        string target = genome.substr(0,i);
+        string pam = genome.substr(i+1,2);
 
         Cas9Aligner aligner = Cas9Aligner( guide, target );
 
