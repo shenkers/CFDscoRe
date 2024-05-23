@@ -75,7 +75,8 @@ class Cas9Aligner {
     public:
 
     Cas9Aligner(string& GUIDE, string& TARGET)
-        : RNA(GUIDE), DNA(TARGET) {
+        : RNA(GUIDE), FULL_DNA(TARGET) {
+        DNA = FULL_DNA.substr(0, FULL_DNA.length() - 3);
         int n = RNA.length();
         int m = DNA.length();
         prefix_score = vector<vector<double>>( n+1, vector<double>( m+1, 0) );
@@ -136,12 +137,35 @@ inline double needleman_wunsch()
     return prefix_score[n][m];
 }
 
-inline pair<string, string> get_optimal_alignment() {
+struct traceback_init {
+    int rna_i;
+    int dna_j;
+    double log_score;
+    string pam;
+};
+
+traceback_init get_traceback_start(){
+    traceback_init start = { -1, -1, -DBL_MAX, "" };
+    double max_score = -DBL_MAX;
+    int n = RNA.length();
+    for( int j=0; j <= DNA.length(); j++ ){
+        string pam = FULL_DNA.substr(j+1,2);
+        double pam_score = pam_table[pam];
+        double score_j =  prefix_score[n][j] + pam_score;
+        if( score_j > start.log_score ) {
+            start = { n, j, score_j, pam };
+        }
+    }
+    return start;
+}
+
+inline Cas9Alignment get_optimal_alignment() {
     int n = RNA.length();
     int m = DNA.length();
     string alignmentRNA, alignmentDNA;
     stack<char> tracebackRNA, tracebackDNA;
-    int rna_i = n, dna_j = m;
+    traceback_init start = get_traceback_start();
+    int rna_i = start.rna_i, dna_j = start.dna_j;
     while (rna_i != 0)
     {
         if (dna_j == 0)
@@ -178,11 +202,12 @@ inline pair<string, string> get_optimal_alignment() {
         tracebackRNA.pop();
         tracebackDNA.pop();
     }
-    return make_pair(alignmentRNA, alignmentDNA);
+    return Cas9Alignment( alignmentRNA, alignmentDNA, start.pam, start.log_score );
 }
 
     string RNA;
     string DNA;
+    string FULL_DNA;
     vector<vector<double>> prefix_score;
     vector<vector<Traceback>> traceback;
 };
@@ -252,23 +277,16 @@ Cas9Alignment optimal_target(string guide, string genome){
 
     Cas9Alignment optimal_alignment;
 
-    for( int i=genome.length() -3; i > 0; i--){
-        string target = genome.substr(0,i);
-        string pam = genome.substr(i+1,2);
-
-        Cas9Aligner aligner = Cas9Aligner( guide, target );
+        Cas9Aligner aligner = Cas9Aligner( guide, genome );
 
         double log_score = aligner.needleman_wunsch();
-        pair<string, string> alignment = aligner.get_optimal_alignment();
+        Cas9Alignment cas9alignment = aligner.get_optimal_alignment();
 
-        log_score += pam_table[pam];
-        Cas9Alignment cas9alignment( alignment.first, alignment.second, pam, log_score );
 
         if( log_score > max_cfd ) {
             optimal_alignment = cas9alignment;
             max_cfd = log_score;
         }
-    }
 
     return optimal_alignment;
 }
@@ -324,15 +342,5 @@ int main()
 
     Cas9Aligner al1 = Cas9Aligner( RNA, DNA );
     printf("score: %f\n",exp(al1.needleman_wunsch()));
-    pair<string, string> alignment = al1.get_optimal_alignment();
-    printf("rna: %s\ndna: %s\n", alignment.first.c_str(), alignment.second.c_str());
-    printf("\ncfd_score('%s','%s','GG')\n",alignment.first.c_str(), alignment.second.c_str());
-    Cas9Alignment forward = optimal_fwd_rev_target(RNA, "AGCCGATCGTGCCGTGTGTACCATGAGCGGCCATGTGTACCATCGAGGGAGCACTCATGGTACACATGGCACGTGACGAGCC");
-    printf("forward\n");
-    printf(" score: %f\n", exp(forward.log_score) );
-    printf(" guide: %s\n", forward.guide.c_str() );
-    printf("target: %s\n", forward.target.c_str() );
-    printf("   pam: %s (%.2f) \n", forward.pam.c_str(), pam_table[forward.pam] );
-    printf("\ncfd_score('%s','%s','GG')\n",forward.guide.c_str(), forward.target.c_str());
     return 0;
 }
