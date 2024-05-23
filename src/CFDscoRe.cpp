@@ -108,7 +108,7 @@ inline double needleman_wunsch()
 {
     int n = RNA.length();
     int m = DNA.length();
-    for (int i=0;i<=n;i++) {
+    for (int i=1;i<=n;i++) {
         // if the score is constant on the margin (rather than increase
         // with the offset) it won't penalize insertions/deletions
         prefix_score[i][0] = -DBL_MAX;
@@ -233,6 +233,10 @@ vector<map<string,double>> load_indel_table( Rcpp::DataFrame data_frame ) {
 
         table[index-1][xna] = log(score);
     }
+
+    vector<string> nt = { "A", "C", "G", "T" };
+    for( string dna : nt )
+        table[0][dna] = -1000;
 
     return table;
 }
