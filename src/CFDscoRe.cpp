@@ -26,13 +26,16 @@ public:
 
     Cas9Alignment(){}
 
-    Cas9Alignment( string& GUIDE, string& TARGET, string& PAM, double LOG_SCORE )
-        : guide(GUIDE), target(TARGET), pam(PAM), log_score(LOG_SCORE) {}
+    Cas9Alignment( string& GUIDE, string& TARGET, string& PAM, double LOG_SCORE, int OFFSET, int TARGET_LENGTH )
+        : guide(GUIDE), target(TARGET), pam(PAM), log_score(LOG_SCORE), offset(OFFSET), target_length(TARGET_LENGTH) {}
 
     string guide;
     string target;
     string pam;
     double log_score;
+    int offset;
+    int target_length;
+    string strand;
 };
 
 vector<map<pair<string,string>,double>> mismatch_table;
@@ -202,7 +205,7 @@ inline Cas9Alignment get_optimal_alignment() {
         tracebackRNA.pop();
         tracebackDNA.pop();
     }
-    return Cas9Alignment( alignmentRNA, alignmentDNA, start.pam, start.log_score );
+    return Cas9Alignment( alignmentRNA, alignmentDNA, start.pam, start.log_score, dna_j, start.dna_j - dna_j );
 }
 
     string RNA;
@@ -285,7 +288,9 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
     double max_cfd = -DBL_MAX;
 
     Cas9Alignment fwd = optimal_target( guide, genome );
+    fwd.strand = "+";
     Cas9Alignment rev = optimal_target( guide, reverse_complement(genome) );
+    rev.strand = "-";
 
     if( fwd.log_score > rev.log_score ){
         return fwd;
@@ -300,16 +305,47 @@ Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector 
     insert_table = load_indel_table( activity_scores["rna_bulge"] );
     delete_table = load_indel_table( activity_scores["dna_bulge"] );
     pam_table = load_pam_table( activity_scores["pam"] );
-    Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[0]) );
-    Rcpp::CharacterVector guide = { optimal.guide };
-    Rcpp::CharacterVector target = { optimal.target };
-    Rcpp::CharacterVector pam = { optimal.pam };
-    Rcpp::NumericVector score = { exp(optimal.log_score) };
-    return Rcpp::List::create(
+
+    int l = genome.length();
+
+    Rcpp::CharacterVector guide( l );
+    Rcpp::CharacterVector target( l );
+    Rcpp::CharacterVector pam( l );
+    Rcpp::NumericVector score( l );
+    Rcpp::IntegerVector offset( l );
+    Rcpp::IntegerVector target_length( l );
+    Rcpp::CharacterVector strand( l );
+
+    guide.fill( guide.get_na() );
+    target.fill( target.get_na() );
+    pam.fill( pam.get_na() );
+    score.fill( score.get_na() );
+    offset.fill( offset.get_na() );
+    target_length.fill( target_length.get_na() );
+    strand.fill( strand.get_na() );
+
+    for( int i=0; i< l; i++ ) {
+        if( Rcpp::as<string>(genome[i]).length() < 5 )
+            continue;
+
+        Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]) );
+        guide[i] = optimal.guide;
+        target[i] = optimal.target;
+        pam[i] = optimal.pam;
+        score[i] =  exp(optimal.log_score);
+        offset[i] = optimal.offset;
+        target_length[i] = optimal.target_length;
+        strand[i] = optimal.strand;
+    }
+
+    return Rcpp::DataFrame::create(
         Rcpp::Named("guide") = guide,
         Rcpp::Named("target") = target,
         Rcpp::Named("pam") = pam,
-        Rcpp::Named("score") = score
+        Rcpp::Named("score") = score,
+        Rcpp::Named("offset") = offset,
+        Rcpp::Named("target_length") = target_length,
+        Rcpp::Named("strand") = strand
     );
 }
 
