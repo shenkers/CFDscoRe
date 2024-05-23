@@ -273,22 +273,12 @@ map<string,double> load_pam_table( Rcpp::DataFrame data_frame ) {
 
 Cas9Alignment optimal_target(string guide, string genome){
 
-    double max_cfd = -DBL_MAX;
+    Cas9Aligner aligner = Cas9Aligner( guide, genome );
 
-    Cas9Alignment optimal_alignment;
+    double log_score = aligner.needleman_wunsch();
+    Cas9Alignment cas9alignment = aligner.get_optimal_alignment();
 
-        Cas9Aligner aligner = Cas9Aligner( guide, genome );
-
-        double log_score = aligner.needleman_wunsch();
-        Cas9Alignment cas9alignment = aligner.get_optimal_alignment();
-
-
-        if( log_score > max_cfd ) {
-            optimal_alignment = cas9alignment;
-            max_cfd = log_score;
-        }
-
-    return optimal_alignment;
+    return cas9alignment;
 }
 
 Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
