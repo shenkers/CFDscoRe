@@ -168,6 +168,8 @@ inline Cas9Alignment get_optimal_alignment() {
     string alignmentRNA, alignmentDNA;
     stack<char> tracebackRNA, tracebackDNA;
     traceback_init start = get_traceback_start();
+    if( start.rna_i < 0 )
+        throw runtime_error("No non-zero CFD alignment exists");
     int rna_i = start.rna_i, dna_j = start.dna_j;
     while (rna_i != 0)
     {
@@ -328,14 +330,24 @@ Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector 
         if( Rcpp::as<string>(genome[i]).length() < 5 )
             continue;
 
-        Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]) );
-        guide[i] = optimal.guide;
-        target[i] = optimal.target;
-        pam[i] = optimal.pam;
-        score[i] =  exp(optimal.log_score);
-        offset[i] = optimal.offset;
-        target_length[i] = optimal.target_length;
-        strand[i] = optimal.strand;
+        try {
+            Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]) );
+            guide[i] = optimal.guide;
+            target[i] = optimal.target;
+            pam[i] = optimal.pam;
+            score[i] =  exp(optimal.log_score);
+            offset[i] = optimal.offset;
+            target_length[i] = optimal.target_length;
+            strand[i] = optimal.strand;
+        } catch( exception& e ) {
+            guide[i] = guide.get_na();
+            target[i] = target.get_na();
+            pam[i] = pam.get_na();
+            score[i] = score.get_na();
+            offset[i] = offset.get_na();
+            target_length[i] = target_length.get_na();
+            strand[i] = strand.get_na();
+        }
     }
 
     return Rcpp::DataFrame::create(
