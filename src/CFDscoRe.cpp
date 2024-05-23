@@ -354,7 +354,7 @@ Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector 
         }
     }
 
-    return Rcpp::DataFrame::create(
+    Rcpp::DataFrame result = Rcpp::DataFrame::create(
         Rcpp::Named("guide") = guide,
         Rcpp::Named("target") = target,
         Rcpp::Named("pam") = pam,
@@ -363,6 +363,10 @@ Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector 
         Rcpp::Named("target_length") = target_length,
         Rcpp::Named("strand") = strand
     );
+
+    result.attr("class") = Rcpp::CharacterVector::create("tbl_df","tbl","data.frame");
+
+    return result;
 }
 
 int main()
