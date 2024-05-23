@@ -111,7 +111,7 @@ inline double needleman_wunsch()
     for (int i=0;i<=n;i++) {
         // if the score is constant on the margin (rather than increase
         // with the offset) it won't penalize insertions/deletions
-        prefix_score[i][0] = -1000*i;
+        prefix_score[i][0] = -DBL_MAX;
         traceback[i][0] = Traceback::Insert;
     }
     for (int i=1;i<=n;i++)
