@@ -307,10 +307,10 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
 
 // [[Rcpp::export]]
 Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome ) {
-    mismatch_table = load_mismatch_table( activity_scores["mismatch"] );
-    insert_table = load_indel_table( activity_scores["rna_bulge"] );
-    delete_table = load_indel_table( activity_scores["dna_bulge"] );
-    pam_table = load_pam_table( activity_scores["pam"] );
+    mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
+    insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
+    delete_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["dna_bulge"]) );
+    pam_table = load_pam_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["pam"]) );
 
     int l = genome.length();
 
