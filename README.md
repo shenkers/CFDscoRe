@@ -32,5 +32,5 @@ CFDscoRe::cfd_score('CA-TGCCGTGTGTACCATGAC', 'CAGTGCCATGTGTACCATCAG', 'GG')
 This package also provides a function to search for the optimal alignment of a guide to a candidate sequence:
 
 ```
-CFDscoRe::cfd_score('CATGCCGTGTGTACCATGAC', 'CAGTGCCATGTGTACCATCAGGG')
+CFDscoRe::optimal_alignment('CATGCCGTGTGTACCATGAC', 'CAGTGCCATGTGTACCATCAGGG')
 ```
