@@ -113,3 +113,16 @@ score_deletes <- function(delete_positions){
     dplyr::rename(deletion=dna) %>%
     left_join(package_state$activity_scores$dna_bulge,by=join_by(deletion, index))
 }
+
+#' CFD-Optimal Alignment
+#'
+#' Uses a modified Needleman-Wunsch algorithm to calculate the alignment with the maximum CFD score.
+#'
+#' @param rna Character representation of the guide. Should be represented as DNA, valid characters include ['A','C','G','T']. Must be 20 nucleotides long.
+#' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
+#' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
+#' @name optimal_alignment
+#' @export
+optimal_alignment <- function(query, genome) {
+    private_optimal_alignment(package_state$activity_scores, query, genome)
+}

@@ -312,9 +312,10 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
 //' @param rna Character representation of the guide. Should be represented as DNA, valid characters include ['A','C','G','T']. Must be 20 nucleotides long.
 //' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
 //' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
-//' @export
-//' [[Rcpp::export]]
-Rcpp::List optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome ) {
+//' @name private_optimal_alignment
+// [[Rcpp::export]]
+Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome ) {
+
     mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
     insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
     delete_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["dna_bulge"]) );

@@ -10,22 +10,22 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
-// optimal_alignment
-Rcpp::List optimal_alignment(Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome);
-RcppExport SEXP _CFDscoRe_optimal_alignment(SEXP activity_scoresSEXP, SEXP querySEXP, SEXP genomeSEXP) {
+// private_optimal_alignment
+Rcpp::List private_optimal_alignment(Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome);
+RcppExport SEXP _CFDscoRe_private_optimal_alignment(SEXP activity_scoresSEXP, SEXP querySEXP, SEXP genomeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::List >::type activity_scores(activity_scoresSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type query(querySEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type genome(genomeSEXP);
-    rcpp_result_gen = Rcpp::wrap(optimal_alignment(activity_scores, query, genome));
+    rcpp_result_gen = Rcpp::wrap(private_optimal_alignment(activity_scores, query, genome));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_CFDscoRe_optimal_alignment", (DL_FUNC) &_CFDscoRe_optimal_alignment, 3},
+    {"_CFDscoRe_private_optimal_alignment", (DL_FUNC) &_CFDscoRe_private_optimal_alignment, 3},
     {NULL, NULL, 0}
 };
 
