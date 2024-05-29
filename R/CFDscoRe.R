@@ -20,7 +20,9 @@ cfd_score <- function(rna,dna,pam){
   position_table <- alignment_to_position_table(toupper(rna),toupper(dna))
   validate_input( position_table, pam )
   classified_positions <- classify_positions(position_table)
-  score_positions(classified_positions,pam)
+  filtered_positions <- classified_positions %>%
+      filter( index > 3 )
+  score_positions(filtered_positions,pam)
 }
 
 validate_input <- function( position_table, pam ){
