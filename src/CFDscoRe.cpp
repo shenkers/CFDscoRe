@@ -292,17 +292,28 @@ Cas9Alignment optimal_target(string guide, string genome){
 
 Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
     double max_cfd = -DBL_MAX;
+    Cas9Alignment optimal;
 
-    Cas9Alignment fwd = optimal_target( guide, genome );
-    fwd.strand = "+";
-    Cas9Alignment rev = optimal_target( guide, reverse_complement(genome) );
-    rev.strand = "-";
+    try {
+        Cas9Alignment fwd = optimal_target( guide, genome );
+        fwd.strand = "+";
+        optimal = fwd;
+        max_cfd = fwd.log_score;
+    } catch( exception& e ) { }
 
-    if( fwd.log_score > rev.log_score ){
-        return fwd;
-    } else {
-        return rev;
-    }
+    try {
+        Cas9Alignment rev = optimal_target( guide, reverse_complement(genome) );
+        rev.strand = "-";
+        if( rev.log_score > max_cfd ) {
+            optimal = rev;
+            max_cfd = rev.log_score;
+        }
+    } catch( exception& e ) { }
+
+    if( ! ( max_cfd > -DBL_MAX ) )
+        throw runtime_error("No non-zero CFD alignment exists on either strand");
+
+    return optimal;
 }
 
 //' CFD-Optimal Alignment
