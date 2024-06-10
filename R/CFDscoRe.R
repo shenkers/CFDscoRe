@@ -127,3 +127,17 @@ score_deletes <- function(delete_positions){
 optimal_alignment <- function(query, genome, allow_bulge = TRUE) {
     private_optimal_alignment(package_state$activity_scores, query, genome, allow_bulge[1] )
 }
+
+#' CFD-Optimal Alignment
+#'
+#' Uses a modified Needleman-Wunsch algorithm to calculate the alignment with the maximum CFD score.
+#'
+#' @param guide Character representation of the guide. Should be represented as DNA, valid characters include ['A','C','G','T']. Must be 20 nucleotides long.
+#' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
+#' @param pam Length-2 character vector representation of the PAM sequence.
+#' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
+#' @name fast_cfd_score
+#' @export
+fast_cfd_score <- function(guide, genome, pam, strict = TRUE) {
+    private_cfd_score( package_state$activity_scores, guide, genome, pam )
+}

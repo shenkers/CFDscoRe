@@ -10,6 +10,20 @@ Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
 Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
+// private_cfd_score
+Rcpp::List private_cfd_score(Rcpp::List activity_scores, Rcpp::CharacterVector guide, Rcpp::CharacterVector genome, Rcpp::CharacterVector pam);
+RcppExport SEXP _CFDscoRe_private_cfd_score(SEXP activity_scoresSEXP, SEXP guideSEXP, SEXP genomeSEXP, SEXP pamSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type activity_scores(activity_scoresSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type guide(guideSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type genome(genomeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type pam(pamSEXP);
+    rcpp_result_gen = Rcpp::wrap(private_cfd_score(activity_scores, guide, genome, pam));
+    return rcpp_result_gen;
+END_RCPP
+}
 // private_optimal_alignment
 Rcpp::List private_optimal_alignment(Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::LogicalVector allow_bulge);
 RcppExport SEXP _CFDscoRe_private_optimal_alignment(SEXP activity_scoresSEXP, SEXP querySEXP, SEXP genomeSEXP, SEXP allow_bulgeSEXP) {
@@ -26,6 +40,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_CFDscoRe_private_cfd_score", (DL_FUNC) &_CFDscoRe_private_cfd_score, 4},
     {"_CFDscoRe_private_optimal_alignment", (DL_FUNC) &_CFDscoRe_private_optimal_alignment, 4},
     {NULL, NULL, 0}
 };

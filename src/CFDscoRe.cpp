@@ -296,6 +296,30 @@ map<string,double> load_pam_table( Rcpp::DataFrame data_frame ) {
     return table;
 }
 
+double score_alignment(string guide, string genome, string pam) {
+    int n = guide.length();
+    int guide_position = 1;
+    double log_score = pam_table[pam];
+    for (int alignment_column=0; alignment_column<n; alignment_column++) {
+        string rna = string(1, guide[alignment_column]);
+        string dna = string(1, genome[alignment_column]);
+
+        if( rna != dna ) {
+            if( dna == "-" ){
+               log_score += cfd_insert_score(guide_position, rna);
+            } else if( rna == "-" ) {
+               log_score += cfd_delete_score(guide_position - 1, dna);
+            } else {
+               log_score += cfd_mismatch_score(guide_position, rna, dna);
+            }
+        }
+
+        if( rna != "-" )
+            guide_position++;
+    }
+    return log_score;
+}
+
 Cas9Alignment optimal_target(string guide, string genome, bool allow_bulge){
 
     Cas9Aligner aligner = Cas9Aligner( guide, genome );
@@ -330,6 +354,49 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome, bool allow_bul
         throw runtime_error("No non-zero CFD alignment exists on either strand");
 
     return optimal;
+}
+//
+//' CFD Score
+//'
+//' Cpp implementation of the bulged CFD score calculation
+//'
+//' @param rna Character representation of the guide. Should be represented as DNA, valid characters include ['A','C','G','T']. Must be 20 nucleotides long.
+//' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
+//' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
+//' @name private_cfd_score
+// [[Rcpp::export]]
+Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector guide, Rcpp::CharacterVector genome, Rcpp::CharacterVector pam ) {
+
+    mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
+    insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
+    delete_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["dna_bulge"]) );
+    pam_table = load_pam_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["pam"]) );
+
+    int l = genome.length();
+
+    Rcpp::NumericVector score( l );
+
+    score.fill( score.get_na() );
+
+    for( int i=0; i< l; i++ ) {
+        try {
+            double cfd = score_alignment( Rcpp::as<string>(guide[i]), Rcpp::as<string>(genome[i]), Rcpp::as<string>(pam[i]) );
+            score[i] = exp(cfd);
+        } catch( exception& e ) {
+            score[i] = score.get_na();
+        }
+    }
+
+    Rcpp::DataFrame result = Rcpp::DataFrame::create(
+        Rcpp::Named("guide") = guide,
+        Rcpp::Named("target") = genome,
+        Rcpp::Named("pam") = pam,
+        Rcpp::Named("score") = score
+    );
+
+    result.attr("class") = Rcpp::CharacterVector::create("tbl_df","tbl","data.frame");
+
+    return result;
 }
 
 //' CFD-Optimal Alignment
