@@ -9,8 +9,8 @@
 #' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
 #' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 #' @name private_cfd_score
-private_cfd_score <- function(activity_scores, guide, genome, pam) {
-    .Call(`_CFDscoRe_private_cfd_score`, activity_scores, guide, genome, pam)
+private_cfd_score <- function(activity_scores, guide, genome, pam, strict) {
+    .Call(`_CFDscoRe_private_cfd_score`, activity_scores, guide, genome, pam, strict)
 }
 
 #' CFD-Optimal Alignment

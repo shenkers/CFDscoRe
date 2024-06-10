@@ -296,13 +296,22 @@ map<string,double> load_pam_table( Rcpp::DataFrame data_frame ) {
     return table;
 }
 
-double score_alignment(string guide, string genome, string pam) {
+double score_alignment(string guide, string genome, string pam, bool strict) {
     int n = guide.length();
-    int guide_position = 1;
+    int guide_position = 20;
     double log_score = pam_table[pam];
-    for (int alignment_column=0; alignment_column<n; alignment_column++) {
+    for (int alignment_column=n-1; alignment_column>-1; alignment_column--) {
         string rna = string(1, guide[alignment_column]);
         string dna = string(1, genome[alignment_column]);
+
+        if( !( rna == "-" || rna == "A" || rna == "C" || rna == "G" || rna == "T" ) )
+            throw runtime_error("CFD undefined for this alignment");
+        if( !( dna == "-" || dna == "A" || dna == "C" || dna == "G" || dna == "T" ) )
+            throw runtime_error("CFD undefined for this alignment");
+        if( rna == "-" && dna == "-" )
+            throw runtime_error("CFD undefined for this alignment");
+        if( guide_position == 1 && rna == "-" )
+            throw runtime_error("CFD undefined for this alignment");
 
         if( rna != dna ) {
             if( dna == "-" ){
@@ -314,9 +323,16 @@ double score_alignment(string guide, string genome, string pam) {
             }
         }
 
-        if( rna != "-" )
-            guide_position++;
+        if( alignment_column > 0 && string(1,guide[alignment_column-1]) != "-" ){
+            guide_position--;
+            if( guide_position < 1 )
+                throw runtime_error("CFD undefined for this alignment");
+        }
     }
+
+    if( strict && guide_position != 1 )
+        throw runtime_error("CFD undefined for this alignment");
+
     return log_score;
 }
 
@@ -365,7 +381,7 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome, bool allow_bul
 //' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 //' @name private_cfd_score
 // [[Rcpp::export]]
-Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector guide, Rcpp::CharacterVector genome, Rcpp::CharacterVector pam ) {
+Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector guide, Rcpp::CharacterVector genome, Rcpp::CharacterVector pam, Rcpp::LogicalVector strict ) {
 
     mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
     insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
@@ -380,7 +396,7 @@ Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector 
 
     for( int i=0; i< l; i++ ) {
         try {
-            double cfd = score_alignment( Rcpp::as<string>(guide[i]), Rcpp::as<string>(genome[i]), Rcpp::as<string>(pam[i]) );
+            double cfd = score_alignment( Rcpp::as<string>(guide[i]), Rcpp::as<string>(genome[i]), Rcpp::as<string>(pam[i]), Rcpp::is_true(Rcpp::all(strict)) );
             score[i] = exp(cfd);
         } catch( exception& e ) {
             score[i] = score.get_na();

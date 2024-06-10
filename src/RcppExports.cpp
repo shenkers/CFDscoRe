@@ -11,8 +11,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // private_cfd_score
-Rcpp::List private_cfd_score(Rcpp::List activity_scores, Rcpp::CharacterVector guide, Rcpp::CharacterVector genome, Rcpp::CharacterVector pam);
-RcppExport SEXP _CFDscoRe_private_cfd_score(SEXP activity_scoresSEXP, SEXP guideSEXP, SEXP genomeSEXP, SEXP pamSEXP) {
+Rcpp::List private_cfd_score(Rcpp::List activity_scores, Rcpp::CharacterVector guide, Rcpp::CharacterVector genome, Rcpp::CharacterVector pam, Rcpp::LogicalVector strict);
+RcppExport SEXP _CFDscoRe_private_cfd_score(SEXP activity_scoresSEXP, SEXP guideSEXP, SEXP genomeSEXP, SEXP pamSEXP, SEXP strictSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -20,7 +20,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type guide(guideSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type genome(genomeSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type pam(pamSEXP);
-    rcpp_result_gen = Rcpp::wrap(private_cfd_score(activity_scores, guide, genome, pam));
+    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type strict(strictSEXP);
+    rcpp_result_gen = Rcpp::wrap(private_cfd_score(activity_scores, guide, genome, pam, strict));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -40,7 +41,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_CFDscoRe_private_cfd_score", (DL_FUNC) &_CFDscoRe_private_cfd_score, 4},
+    {"_CFDscoRe_private_cfd_score", (DL_FUNC) &_CFDscoRe_private_cfd_score, 5},
     {"_CFDscoRe_private_optimal_alignment", (DL_FUNC) &_CFDscoRe_private_optimal_alignment, 4},
     {NULL, NULL, 0}
 };
