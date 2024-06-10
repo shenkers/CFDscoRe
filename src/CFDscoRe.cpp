@@ -104,7 +104,7 @@ inline double score_delete_pos( int i, int j, string dna) {
     return prefix_score[i][j-1] + cfd_delete_score(i, dna);
 }
 
-inline double needleman_wunsch()
+inline double needleman_wunsch(bool allow_bulge)
 {
     int n = RNA.length();
     int m = DNA.length();
@@ -114,26 +114,42 @@ inline double needleman_wunsch()
         prefix_score[i][0] = -DBL_MAX;
         traceback[i][0] = Traceback::Insert;
     }
-    for (int i=1;i<=n;i++)
-    {
-        for (int j=1;j<=m;j++)
+    if( allow_bulge ) {
+        for (int i=1;i<=n;i++)
         {
-            string rna = string(1, RNA[i-1]);
-            string dna = string(1, DNA[j-1]);
+            for (int j=1;j<=m;j++)
+            {
+                string rna = string(1, RNA[i-1]);
+                string dna = string(1, DNA[j-1]);
 
-            double score_match = score_match_or_mismatch(i, j, rna, dna);
-            double score_insert = score_insert_pos(i, j, rna);
-            double score_delete = score_delete_pos(i, j, dna);
+                double score_match = score_match_or_mismatch(i, j, rna, dna);
+                double score_insert = score_insert_pos(i, j, rna);
+                double score_delete = score_delete_pos(i, j, dna);
 
-            if( score_match >= score_insert && score_match >= score_delete ) {
+                if( score_match >= score_insert && score_match >= score_delete ) {
+                    prefix_score[i][j] = score_match;
+                    traceback[i][j] = Traceback::Match;
+                } else if( score_insert > score_delete ) {
+                    prefix_score[i][j] = score_insert;
+                    traceback[i][j] = Traceback::Insert;
+                } else {
+                    prefix_score[i][j] = score_delete;
+                    traceback[i][j] = Traceback::Delete;
+                }
+            }
+        }
+    } else {
+        for (int i=1;i<=n;i++)
+        {
+            for (int j=1;j<=m;j++)
+            {
+                string rna = string(1, RNA[i-1]);
+                string dna = string(1, DNA[j-1]);
+
+                double score_match = score_match_or_mismatch(i, j, rna, dna);
+
                 prefix_score[i][j] = score_match;
                 traceback[i][j] = Traceback::Match;
-            } else if( score_insert > score_delete ) {
-                prefix_score[i][j] = score_insert;
-                traceback[i][j] = Traceback::Insert;
-            } else {
-                prefix_score[i][j] = score_delete;
-                traceback[i][j] = Traceback::Delete;
             }
         }
     }
@@ -280,29 +296,29 @@ map<string,double> load_pam_table( Rcpp::DataFrame data_frame ) {
     return table;
 }
 
-Cas9Alignment optimal_target(string guide, string genome){
+Cas9Alignment optimal_target(string guide, string genome, bool allow_bulge){
 
     Cas9Aligner aligner = Cas9Aligner( guide, genome );
 
-    double log_score = aligner.needleman_wunsch();
+    double log_score = aligner.needleman_wunsch(allow_bulge);
     Cas9Alignment cas9alignment = aligner.get_optimal_alignment();
 
     return cas9alignment;
 }
 
-Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
+Cas9Alignment optimal_fwd_rev_target(string guide, string genome, bool allow_bulge ){
     double max_cfd = -DBL_MAX;
     Cas9Alignment optimal;
 
     try {
-        Cas9Alignment fwd = optimal_target( guide, genome );
+        Cas9Alignment fwd = optimal_target( guide, genome, allow_bulge );
         fwd.strand = "+";
         optimal = fwd;
         max_cfd = fwd.log_score;
     } catch( exception& e ) { }
 
     try {
-        Cas9Alignment rev = optimal_target( guide, reverse_complement(genome) );
+        Cas9Alignment rev = optimal_target( guide, reverse_complement(genome), allow_bulge );
         rev.strand = "-";
         if( rev.log_score > max_cfd ) {
             optimal = rev;
@@ -325,7 +341,7 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome){
 //' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 //' @name private_optimal_alignment
 // [[Rcpp::export]]
-Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome ) {
+Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::LogicalVector allow_bulge ) {
 
     mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
     insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
@@ -351,11 +367,10 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
     strand.fill( strand.get_na() );
 
     for( int i=0; i< l; i++ ) {
-        if( Rcpp::as<string>(genome[i]).length() < 5 )
-            continue;
-
         try {
-            Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]) );
+            if( Rcpp::as<string>(genome[i]).length() < 5 )
+                throw runtime_error("CFD is undefined for sequences with length less than 5.");
+            Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), Rcpp::is_true(Rcpp::all(allow_bulge)) );
             guide[i] = optimal.guide;
             target[i] = optimal.target;
             pam[i] = optimal.pam;
@@ -407,6 +422,6 @@ int main()
     string DNA = "CGGCCATGTGTACCATCGAG";
 
     Cas9Aligner al1 = Cas9Aligner( RNA, DNA );
-    printf("score: %f\n",exp(al1.needleman_wunsch()));
+    printf("score: %f\n",exp(al1.needleman_wunsch(true)));
     return 0;
 }
