@@ -371,6 +371,32 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome, bool allow_bul
 
     return optimal;
 }
+
+struct EditDistance {
+    int edit_distance;
+    int n_mismatch;
+    int n_rna_bulge;
+    int n_dna_bulge;
+    int n_pam_mismatch;
+};
+
+EditDistance get_edit_distance( string guide, string target, string pam ) {
+    EditDistance distance = { 0, 0, 0, 0, 0 };
+    for( int i=0; i < guide.length(); i++ ) {
+        string rna = string(1,guide[i]);
+        string dna = string(1,target[i]);
+        if( rna != dna ) {
+            if( dna == "-" ) distance.n_rna_bulge++;
+            else if( rna == "-" ) distance.n_dna_bulge++;
+            else distance.n_mismatch++;
+        }
+    }
+    if( string(1,pam[0]) != "G" ) distance.n_pam_mismatch++;
+    if( string(1,pam[1]) != "G" ) distance.n_pam_mismatch++;
+    distance.edit_distance = distance.n_mismatch + distance.n_rna_bulge + distance.n_dna_bulge + distance.n_pam_mismatch;
+    return distance;
+}
+
 //
 //' CFD Score
 //'
@@ -391,23 +417,45 @@ Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector 
     int l = genome.length();
 
     Rcpp::NumericVector score( l );
+    Rcpp::IntegerVector edit_distance( l );
+    Rcpp::IntegerVector n_mismatch( l );
+    Rcpp::IntegerVector n_rna_bulge( l );
+    Rcpp::IntegerVector n_dna_bulge( l );
+    Rcpp::IntegerVector n_pam_mismatch( l );
 
     score.fill( score.get_na() );
+    edit_distance.fill( edit_distance.get_na() );
+    n_mismatch.fill( n_mismatch.get_na() );
+    n_rna_bulge.fill( n_rna_bulge.get_na() );
+    n_dna_bulge.fill( n_dna_bulge.get_na() );
+    n_pam_mismatch.fill( n_pam_mismatch.get_na() );
 
     for( int i=0; i< l; i++ ) {
         try {
             double cfd = score_alignment( Rcpp::as<string>(guide[i]), Rcpp::as<string>(genome[i]), Rcpp::as<string>(pam[i]), Rcpp::is_true(Rcpp::all(strict)) );
             score[i] = exp(cfd);
+            EditDistance distance = get_edit_distance( Rcpp::as<string>(guide[i]), Rcpp::as<string>(genome[i]), Rcpp::as<string>(pam[i]) );
+            edit_distance[i] = distance.edit_distance;
+            n_mismatch[i] = distance.n_mismatch;
+            n_rna_bulge[i] = distance.n_rna_bulge;
+            n_dna_bulge[i] = distance.n_dna_bulge;
+            n_pam_mismatch[i] = distance.n_pam_mismatch;
         } catch( exception& e ) {
             score[i] = score.get_na();
         }
     }
 
+
     Rcpp::DataFrame result = Rcpp::DataFrame::create(
         Rcpp::Named("guide") = guide,
         Rcpp::Named("target") = genome,
         Rcpp::Named("pam") = pam,
-        Rcpp::Named("score") = score
+        Rcpp::Named("score") = score,
+        Rcpp::Named("edit_distance") = edit_distance,
+        Rcpp::Named("n_mismatch") = n_mismatch,
+        Rcpp::Named("n_rna_bulge") = n_rna_bulge,
+        Rcpp::Named("n_dna_bulge") = n_dna_bulge,
+        Rcpp::Named("n_pam_mismatch") = n_pam_mismatch
     );
 
     result.attr("class") = Rcpp::CharacterVector::create("tbl_df","tbl","data.frame");
@@ -437,6 +485,11 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
     Rcpp::CharacterVector target( l );
     Rcpp::CharacterVector pam( l );
     Rcpp::NumericVector score( l );
+    Rcpp::IntegerVector edit_distance( l );
+    Rcpp::IntegerVector n_mismatch( l );
+    Rcpp::IntegerVector n_rna_bulge( l );
+    Rcpp::IntegerVector n_dna_bulge( l );
+    Rcpp::IntegerVector n_pam_mismatch( l );
     Rcpp::IntegerVector offset( l );
     Rcpp::IntegerVector target_length( l );
     Rcpp::CharacterVector strand( l );
@@ -445,6 +498,11 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
     target.fill( target.get_na() );
     pam.fill( pam.get_na() );
     score.fill( score.get_na() );
+    edit_distance.fill( edit_distance.get_na() );
+    n_mismatch.fill( n_mismatch.get_na() );
+    n_rna_bulge.fill( n_rna_bulge.get_na() );
+    n_dna_bulge.fill( n_dna_bulge.get_na() );
+    n_pam_mismatch.fill( n_pam_mismatch.get_na() );
     offset.fill( offset.get_na() );
     target_length.fill( target_length.get_na() );
     strand.fill( strand.get_na() );
@@ -458,6 +516,12 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
             target[i] = optimal.target;
             pam[i] = optimal.pam;
             score[i] =  exp(optimal.log_score);
+            EditDistance distance = get_edit_distance( optimal.guide, optimal.target, optimal.pam );
+            edit_distance[i] = distance.edit_distance;
+            n_mismatch[i] = distance.n_mismatch;
+            n_rna_bulge[i] = distance.n_rna_bulge;
+            n_dna_bulge[i] = distance.n_dna_bulge;
+            n_pam_mismatch[i] = distance.n_pam_mismatch;
             offset[i] = optimal.offset;
             target_length[i] = optimal.target_length;
             strand[i] = optimal.strand;
@@ -477,6 +541,11 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
         Rcpp::Named("target") = target,
         Rcpp::Named("pam") = pam,
         Rcpp::Named("score") = score,
+        Rcpp::Named("edit_distance") = edit_distance,
+        Rcpp::Named("n_mismatch") = n_mismatch,
+        Rcpp::Named("n_rna_bulge") = n_rna_bulge,
+        Rcpp::Named("n_dna_bulge") = n_dna_bulge,
+        Rcpp::Named("n_pam_mismatch") = n_pam_mismatch,
         Rcpp::Named("offset") = offset,
         Rcpp::Named("target_length") = target_length,
         Rcpp::Named("strand") = strand
