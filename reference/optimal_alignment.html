@@ -42,12 +42,25 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">optimal_alignment</span><span class="op">(</span><span class="va">query</span>, <span class="va">genome</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">optimal_alignment</span><span class="op">(</span></span>
+<span>  <span class="va">query</span>,</span>
+<span>  <span class="va">genome</span>,</span>
+<span>  allow_bulge <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  search_both_strands <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
-    <dl><dt>rna</dt>
+    <dl><dt>allow_bulge</dt>
+<dd><p>Length-1 logical vector indicating whether or not the alignment algorith is allowed to generate alignments that contain bulges.</p></dd>
+
+
+<dt>search_both_strands</dt>
+<dd><p>Length-1 logical vector indicating whether or not the reverse-complement sequence should be searched for an alignment with the guide.</p></dd>
+
+
+<dt>rna</dt>
 <dd><p>Character representation of the guide. Should be represented as DNA, valid characters include 'A','C','G','T'. Must be 20 nucleotides long.</p></dd>
 
 

@@ -19,10 +19,16 @@
     <loc>/reference/cfd_score.html</loc>
   </url>
   <url>
+    <loc>/reference/fast_cfd_score.html</loc>
+  </url>
+  <url>
     <loc>/reference/index.html</loc>
   </url>
   <url>
     <loc>/reference/optimal_alignment.html</loc>
+  </url>
+  <url>
+    <loc>/reference/private_cfd_score.html</loc>
   </url>
   <url>
     <loc>/reference/private_optimal_alignment.html</loc>
