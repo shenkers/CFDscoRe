@@ -21,7 +21,7 @@ private_cfd_score <- function(activity_scores, guide, genome, pam, strict) {
 #' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
 #' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 #' @name private_optimal_alignment
-private_optimal_alignment <- function(activity_scores, query, genome, allow_bulge) {
-    .Call(`_CFDscoRe_private_optimal_alignment`, activity_scores, query, genome, allow_bulge)
+private_optimal_alignment <- function(activity_scores, query, genome, allow_bulge, search_both_strands) {
+    .Call(`_CFDscoRe_private_optimal_alignment`, activity_scores, query, genome, allow_bulge, search_both_strands)
 }
 
