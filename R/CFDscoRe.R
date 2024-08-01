@@ -121,11 +121,12 @@ score_deletes <- function(delete_positions){
 #' @param rna Character representation of the guide. Should be represented as DNA, valid characters include ['A','C','G','T']. Must be 20 nucleotides long.
 #' @param dna Character representation of the target target sequences to search for an alignment. Should be represented as DNA, valid characters include ['A','C','G','T']. No length requirement.
 #' @param allow_bulge Length-1 logical vector indicating whether or not the alignment algorith is allowed to generate alignments that contain bulges.
+#' @param search_both_strands Length-1 logical vector indicating whether or not the reverse-complement sequence should be searched for an alignment with the guide.
 #' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 #' @name optimal_alignment
 #' @export
-optimal_alignment <- function(query, genome, allow_bulge = TRUE) {
-    private_optimal_alignment(package_state$activity_scores, query, genome, allow_bulge[1] )
+optimal_alignment <- function(query, genome, allow_bulge = TRUE, search_both_strands = TRUE) {
+    private_optimal_alignment(package_state$activity_scores, query, genome, allow_bulge[1], search_both_strands[1])
 }
 
 #' Fast CFD Score
