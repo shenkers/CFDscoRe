@@ -372,6 +372,23 @@ Cas9Alignment optimal_fwd_rev_target(string guide, string genome, bool allow_bul
     return optimal;
 }
 
+Cas9Alignment optimal_fwd_target(string guide, string genome, bool allow_bulge ){
+    double max_cfd = -DBL_MAX;
+    Cas9Alignment optimal;
+
+    try {
+        Cas9Alignment fwd = optimal_target( guide, genome, allow_bulge );
+        fwd.strand = "+";
+        optimal = fwd;
+        max_cfd = fwd.log_score;
+    } catch( exception& e ) { }
+
+    if( ! ( max_cfd > -DBL_MAX ) )
+        throw runtime_error("No non-zero CFD alignment exists on either strand");
+
+    return optimal;
+}
+
 struct EditDistance {
     int edit_distance;
     int n_mismatch;
@@ -472,7 +489,7 @@ Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector 
 //' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 //' @name private_optimal_alignment
 // [[Rcpp::export]]
-Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::LogicalVector allow_bulge ) {
+Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::LogicalVector allow_bulge, Rcpp::LogicalVector search_both_strands ) {
 
     mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
     insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
@@ -511,7 +528,12 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
         try {
             if( Rcpp::as<string>(genome[i]).length() < 5 )
                 throw runtime_error("CFD is undefined for sequences with length less than 5.");
-            Cas9Alignment optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), Rcpp::is_true(Rcpp::all(allow_bulge)) );
+
+            Cas9Alignment optimal;
+            if( Rcpp::is_true(Rcpp::all(search_both_strands)) )
+                optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), Rcpp::is_true(Rcpp::all(allow_bulge)) );
+            else
+                optimal = optimal_fwd_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), Rcpp::is_true(Rcpp::all(allow_bulge)) );
             guide[i] = optimal.guide;
             target[i] = optimal.target;
             pam[i] = optimal.pam;
