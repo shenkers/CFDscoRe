@@ -21,9 +21,15 @@ using namespace std;
 
 enum class TracebackOp { Match, Insert, Delete };
 
+struct AlignmentPosition {
+    int rnaPosition;
+    int dnaPosition;
+};
+
 struct Traceback {
     optional<Traceback>* traceback;
     TracebackOp op;
+    AlignmentPosition alignmentPosition;
     double score;
     int edit_distance;
     int n_rna_bulge;
@@ -44,13 +50,7 @@ class AlignmentConstraint {
 
 struct Matching {
     Traceback previous;
-    int rnaPosition;
-    int dnaPosition;
-};
-
-struct AlignmentPosition {
-    int rnaPosition;
-    int dnaPosition;
+    AlignmentPosition alignmentPosition;
 };
 
 class Cas9Alignment {
