@@ -19,7 +19,39 @@
 
 using namespace std;
 
-enum class Traceback { Match, Insert, Delete };
+enum class TracebackOp { Match, Insert, Delete };
+
+struct Traceback {
+    optional<Traceback>* traceback;
+    TracebackOp op;
+    double score;
+    int edit_distance;
+    int n_rna_bulge;
+    int n_dna_bulge;
+    int n_mismatch;
+};
+
+class AlignmentConstraint {
+    public:
+    AlignmentConstraint( int max_edit_distance ) : max_edit_distance( max_edit_distance ) {}
+
+    bool satisfies( const Traceback& traceback ){
+        return traceback.edit_distance <= max_edit_distance;
+    }
+
+    int max_edit_distance;
+};
+
+struct Matching {
+    Traceback previous;
+    int rnaPosition;
+    int dnaPosition;
+};
+
+struct AlignmentPosition {
+    int rnaPosition;
+    int dnaPosition;
+};
 
 class Cas9Alignment {
 public:
@@ -83,7 +115,7 @@ class Cas9Aligner {
         int n = RNA.length();
         int m = DNA.length();
         prefix_score = vector<vector<double>>( n+1, vector<double>( m+1, 0) );
-        traceback = vector<vector<Traceback>>( n+1, vector<Traceback>( m+1 ) );
+        traceback = vector<vector<TracebackOp>>( n+1, vector<TracebackOp>( m+1 ) );
     }
 
 inline double score_match_or_mismatch( int i, int j, string rna, string dna) {
@@ -112,7 +144,7 @@ inline double needleman_wunsch(bool allow_bulge)
         // if the score is constant on the margin (rather than increase
         // with the offset) it won't penalize insertions/deletions
         prefix_score[i][0] = -DBL_MAX;
-        traceback[i][0] = Traceback::Insert;
+        traceback[i][0] = TracebackOp::Insert;
     }
     if( allow_bulge ) {
         for (int i=1;i<=n;i++)
@@ -128,13 +160,13 @@ inline double needleman_wunsch(bool allow_bulge)
 
                 if( score_match >= score_insert && score_match >= score_delete ) {
                     prefix_score[i][j] = score_match;
-                    traceback[i][j] = Traceback::Match;
+                    traceback[i][j] = TracebackOp::Match;
                 } else if( score_insert > score_delete ) {
                     prefix_score[i][j] = score_insert;
-                    traceback[i][j] = Traceback::Insert;
+                    traceback[i][j] = TracebackOp::Insert;
                 } else {
                     prefix_score[i][j] = score_delete;
-                    traceback[i][j] = Traceback::Delete;
+                    traceback[i][j] = TracebackOp::Delete;
                 }
             }
         }
@@ -149,7 +181,7 @@ inline double needleman_wunsch(bool allow_bulge)
                 double score_match = score_match_or_mismatch(i, j, rna, dna);
 
                 prefix_score[i][j] = score_match;
-                traceback[i][j] = Traceback::Match;
+                traceback[i][j] = TracebackOp::Match;
             }
         }
     }
@@ -197,13 +229,13 @@ inline Cas9Alignment get_optimal_alignment() {
         }
         else
         {
-            if (traceback[rna_i][dna_j] == Traceback::Match)
+            if (traceback[rna_i][dna_j] == TracebackOp::Match)
             {
                 tracebackRNA.push(RNA[rna_i-1]);
                 tracebackDNA.push(DNA[dna_j-1]);
                 rna_i--; dna_j--;
             }
-            else if (traceback[rna_i][dna_j] == Traceback::Insert) {
+            else if (traceback[rna_i][dna_j] == TracebackOp::Insert) {
                 tracebackRNA.push(RNA[rna_i-1]);
                 tracebackDNA.push('-');
                 rna_i--;
@@ -230,7 +262,7 @@ inline Cas9Alignment get_optimal_alignment() {
     string DNA;
     string FULL_DNA;
     vector<vector<double>> prefix_score;
-    vector<vector<Traceback>> traceback;
+    vector<vector<TracebackOp>> traceback;
 };
 
 vector<map<string,double>> load_indel_table( Rcpp::DataFrame data_frame ) {
