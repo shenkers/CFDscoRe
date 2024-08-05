@@ -27,7 +27,7 @@ struct AlignmentPosition {
 };
 
 struct Traceback {
-    struct Traceback* traceback;
+    struct Traceback* previous;
     TracebackOp op;
     AlignmentPosition alignmentPosition;
     double score;
@@ -202,6 +202,27 @@ inline double needleman_wunsch(bool allow_bulge)
                     matchings.push( { dnaBulge, { rnaPosition, dnaPosition + 1 } } );
                 } else if( rnaPosition == n ) {
                     terminals.push( dnaBulge );
+                }
+            }
+        }
+        while( !terminals.empty() ) {
+            Traceback traceback = terminals.top();
+            terminals.pop();
+
+            string rna = "";
+            string dna = "";
+
+            while( true ) {
+                int rnaPosition = traceback.alignmentPosition.rnaPosition;
+                int dnaPosition = traceback.alignmentPosition.dnaPosition;
+
+                // TODO this will need to be reverse complemented
+                rna += RNA[rnaPosition - 1];
+                dna += DNA[dnaPosition - 1];
+
+                traceback = *traceback.previous;
+                if( &traceback == &start ) {
+                    break;
                 }
             }
         }
