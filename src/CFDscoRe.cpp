@@ -147,10 +147,44 @@ inline double needleman_wunsch(bool allow_bulge)
         traceback[i][0] = TracebackOp::Insert;
     }
     if(false){
+        AlignmentConstraint constraint(6);
         Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0 };
         queue<Matching> matchings;
         for( int j=1; j<=m; j++ ) {
             matchings.push( { start, { 1, j } } );
+        }
+
+        while( !matchings.empty() ) {
+            Matching matching = matchings.front();
+            matchings.pop();
+
+            int rnaPosition = matching.alignmentPosition.rnaPosition;
+            int dnaPosition = matching.alignmentPosition.dnaPosition;
+
+            string rna = string(1, RNA[rnaPosition-1]);
+            string dna = string(1, DNA[dnaPosition-1]);
+
+            bool isMatch = rna == dna;
+
+            double score_match = score_match_or_mismatch(rnaPosition, dnaPosition, rna, dna);
+
+            Traceback match = { &matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous.score + score_match, matching.previous.edit_distance + ( isMatch ? 0 : 1 ), 0, 0, 0 };
+            if( constraint.satisfies(match) ){
+                matchings.push( { match, { rnaPosition + 1, dnaPosition + 1 } } );
+            }
+
+            double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
+            // TODO the 0,0,0 should be the rna/dna/mm counts, based on previous and this
+            Traceback insert = { &matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous.score + score_insert, matching.previous.edit_distance + 1, 0, 0, 0 };
+            if( constraint.satisfies(insert) ){
+                matchings.push( { insert, { rnaPosition + 1, dnaPosition } } );
+            }
+
+            double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
+            Traceback dnaBulge = { &matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous.score + score_delete, matching.previous.edit_distance + 1, 0, 0, 0 };
+            if( constraint.satisfies(dnaBulge) ){
+                matchings.push( { dnaBulge, { rnaPosition, dnaPosition + 1 } } );
+            }
         }
 
         int i = 1;
