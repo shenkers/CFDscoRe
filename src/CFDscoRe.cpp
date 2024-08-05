@@ -27,7 +27,7 @@ struct AlignmentPosition {
 };
 
 struct Traceback {
-    optional<Traceback>* traceback;
+    struct Traceback* traceback;
     TracebackOp op;
     AlignmentPosition alignmentPosition;
     double score;
@@ -146,6 +146,20 @@ inline double needleman_wunsch(bool allow_bulge)
         prefix_score[i][0] = -DBL_MAX;
         traceback[i][0] = TracebackOp::Insert;
     }
+    if(false){
+        Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0 };
+        queue<Matching> matchings;
+        for( int j=1; j<=m; j++ ) {
+            matchings.push( { start, { 1, j } } );
+        }
+
+        int i = 1;
+        int j = 1;
+        string rna = string(1, RNA[i-1]);
+        string dna = string(1, DNA[j-1]);
+
+    }
+
     if( allow_bulge ) {
         for (int i=1;i<=n;i++)
         {
