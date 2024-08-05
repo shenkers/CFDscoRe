@@ -27,7 +27,7 @@ struct AlignmentPosition {
 };
 
 struct Traceback {
-    struct Traceback* previous;
+    Traceback* previous;
     TracebackOp op;
     AlignmentPosition alignmentPosition;
     double score;
@@ -49,7 +49,7 @@ class AlignmentConstraint {
 };
 
 struct Matching {
-    Traceback previous;
+    Traceback* previous;
     AlignmentPosition alignmentPosition;
 };
 
@@ -146,7 +146,7 @@ inline double needleman_wunsch(bool allow_bulge)
         prefix_score[i][0] = -DBL_MAX;
         traceback[i][0] = TracebackOp::Insert;
     }
-    if(false){
+    if(true){
         AlignmentConstraint constraint(6);
 
         Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0 };
@@ -154,7 +154,7 @@ inline double needleman_wunsch(bool allow_bulge)
 
         queue<Matching> matchings;
         for( int j=1; j<=m; j++ ) {
-            matchings.push( { start, { 1, j } } );
+            matchings.push( { &start, { 1, j } } );
         }
 
         while( !matchings.empty() ) {
@@ -171,8 +171,12 @@ inline double needleman_wunsch(bool allow_bulge)
 
             double score_match = score_match_or_mismatch(rnaPosition, dnaPosition, rna, dna);
 
-            Traceback match = { &matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous.score + score_match, matching.previous.edit_distance + ( isMatch ? 0 : 1 ), 0, 0, 0 };
-            if( constraint.satisfies(match) ){
+            Traceback previous = *matching.previous;
+
+            int match_edit_dist = previous.edit_distance + (isMatch ? 0 : 1);
+
+            Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, 0, 0, 0 };
+            if( constraint.satisfies(*match) ){
                 if( ( rnaPosition + 1 <= n ) && ( dnaPosition + 1 <= m ) ) {
                     // TODO rather than pushing like this
                     // should have a map from positions ->
@@ -180,28 +184,28 @@ inline double needleman_wunsch(bool allow_bulge)
                     // edit distance
                     matchings.push( { match, { rnaPosition + 1, dnaPosition + 1 } } );
                 } else if( rnaPosition == n ) {
-                    terminals.push( match );
+                    terminals.push( *match );
                 }
             }
 
             double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
             // TODO the 0,0,0 should be the rna/dna/mm counts, based on previous and this
-            Traceback insert = { &matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous.score + score_insert, matching.previous.edit_distance + 1, 0, 0, 0 };
-            if( constraint.satisfies(insert) ){
-                if( rnaPosition + 1 < n ){
+            Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, 0, 0, 0 };
+            if( constraint.satisfies(*insert) ){
+                if( rnaPosition + 1 <= n ){
                     matchings.push( { insert, { rnaPosition + 1, dnaPosition } } );
                 } else if( rnaPosition == n ) {
-                    terminals.push( insert );
+                    terminals.push( *insert );
                 }
             }
 
             double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
-            Traceback dnaBulge = { &matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous.score + score_delete, matching.previous.edit_distance + 1, 0, 0, 0 };
-            if( constraint.satisfies(dnaBulge) ){
-                if( dnaPosition + 1 < m ){
+            Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, 0, 0, 0 };
+            if( constraint.satisfies(*dnaBulge) ){
+                if( dnaPosition + 1 <= m ){
                     matchings.push( { dnaBulge, { rnaPosition, dnaPosition + 1 } } );
                 } else if( rnaPosition == n ) {
-                    terminals.push( dnaBulge );
+                    terminals.push( *dnaBulge );
                 }
             }
         }
@@ -217,11 +221,19 @@ inline double needleman_wunsch(bool allow_bulge)
                 int dnaPosition = traceback.alignmentPosition.dnaPosition;
 
                 // TODO this will need to be reverse complemented
-                rna += RNA[rnaPosition - 1];
-                dna += DNA[dnaPosition - 1];
+
+                if( traceback.op != TracebackOp::Delete )
+                    rna += RNA[rnaPosition - 1];
+                else
+                    rna += "-";
+
+                if( traceback.op != TracebackOp::Insert )
+                    dna += DNA[dnaPosition - 1];
+                else
+                    dna += "-";
 
                 traceback = *traceback.previous;
-                if( &traceback == &start ) {
+                if( !traceback.previous ) {
                     break;
                 }
             }
