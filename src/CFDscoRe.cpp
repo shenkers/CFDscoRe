@@ -68,16 +68,16 @@ public:
         auto mapKey = *key.toTuple();
 
         bool maxExists = maxTraceback.find(mapKey) != maxTraceback.end();
-        if( max != nullptr ) {
-            Traceback max = maxTraceback[mapKey];
-            if( max.score < traceback.score )
+        if( maxExists ) {
+            Traceback* max = maxTraceback[mapKey];
+            if( max->score < traceback->score )
                 maxTraceback[mapKey] = traceback;
         } else {
             maxTraceback[mapKey] = traceback;
         }
     }
 
-    map<tuple<int,int,int>,Traceback> maxTraceback;
+    map<tuple<int,int,int>,Traceback*> maxTraceback;
 
 };
 
