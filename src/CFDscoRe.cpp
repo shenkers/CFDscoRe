@@ -363,9 +363,9 @@ inline double needleman_wunsch(bool allow_bulge)
                 }
             }
         }
-        stack<Traceback> terminals = accumulator.listMaxTerminalTracebacks(max_edit_distance,FULL_DNA,pam_table,constraint);
+        stack<shared_ptr<Traceback>> terminals = accumulator.listMaxTerminalTracebacks(max_edit_distance,FULL_DNA,pam_table,constraint);
         while( !terminals.empty() ) {
-            Traceback traceback = terminals.top();
+            Traceback traceback = *terminals.top();
             printf("score %.2f\n", traceback.score);
             terminals.pop();
 
