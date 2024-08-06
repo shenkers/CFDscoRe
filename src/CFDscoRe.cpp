@@ -47,6 +47,11 @@ struct Traceback {
     int n_mismatch;
 };
 
+struct Matching {
+    Traceback* previous;
+    AlignmentPosition alignmentPosition;
+};
+
 class AlignmentConstraint {
     public:
     AlignmentConstraint( int max_edit_distance ) : max_edit_distance( max_edit_distance ) {}
@@ -83,44 +88,64 @@ public:
 
     TracebackAccumulator() { }
 
-    void accumulate(Traceback* traceback) {
-        TracebackKey key = { traceback->alignmentPosition, traceback->edit_distance };
+    void accumulate(Matching matching) {
+        Traceback* traceback = matching.previous;
+        TracebackKey key = { matching.alignmentPosition, traceback->edit_distance };
 
         auto mapKey = *key.toTuple();
 
         bool maxExists = maxTraceback.find(mapKey) != maxTraceback.end();
         if( maxExists ) {
-            Traceback* max = maxTraceback[mapKey];
-            if( max->score < traceback->score )
-                maxTraceback[mapKey] = traceback;
+            Matching max = maxTraceback[mapKey];
+            if( max.previous->score < traceback->score )
+                maxTraceback[mapKey] = matching;
         } else {
-            maxTraceback[mapKey] = traceback;
+            maxTraceback[mapKey] = matching;
         }
     }
 
-    stack<Traceback*> listMaxTracebacksAt( AlignmentPosition alignmentPosition ) {
-        stack<Traceback*> max;
+    stack<Matching> listMaxTracebacksAt( AlignmentPosition alignmentPosition ) {
+        stack<Matching> max;
         unordered_set<Traceback*> visited;
         for( const auto& entry : maxTraceback ){
             TracebackKey key = TracebackKey(entry.first);
             if( key.alignmentPosition.rnaPosition == alignmentPosition.rnaPosition &&
                 key.alignmentPosition.dnaPosition == alignmentPosition.dnaPosition ) {
-                if(visited.find(entry.second->previous) == visited.end()){
-                    max.push( entry.second->previous );
-                    visited.insert( entry.second->previous );
-                }
+//                if(visited.find(entry.second->previous) == visited.end()){
+                    printf("  pushing traceback\n");
+                    max.push( entry.second );
+//                    visited.insert( entry.second->previous );
+//                }
             }
         }
         return max;
     }
 
-    map<tuple<int,int,int>,Traceback*> maxTraceback;
+    stack<Traceback> listMaxTerminalTracebacks( int max_edit_distance ) {
+        stack<Traceback> max;
+        for(int i=0; i<= max_edit_distance; i++){
+            Traceback* maxTrace = nullptr;
+            for( const auto& entry : maxTraceback ){
+                TracebackKey key = TracebackKey(entry.first);
+                // TODO make sure that the dnaPosition is at least 3 shorter than DNA
+                // extract the PAM and score it
+                // use the combined score for tracking the maxTrace
+                if( key.alignmentPosition.rnaPosition == 20 && key.edit_distance == i) {
+                    if( maxTrace == nullptr ) {
+                        maxTrace = entry.second.previous;
+                    } else if( entry.second.previous->score > maxTrace->score){
+                        maxTrace = entry.second.previous;
+                    }
+                }
+            }
+            if(maxTrace != nullptr)
+                max.push( *maxTrace );
+        }
+        return max;
+    }
 
-};
+    map<tuple<int,int,int>,Matching> maxTraceback;
 
-struct Matching {
-    Traceback* previous;
-    AlignmentPosition alignmentPosition;
 };
 
 class Cas9Alignment {
@@ -217,7 +242,8 @@ inline double needleman_wunsch(bool allow_bulge)
         traceback[i][0] = TracebackOp::Insert;
     }
     if(true){
-        AlignmentConstraint constraint(6);
+        int max_edit_distance = 6;
+        AlignmentConstraint constraint(max_edit_distance);
 
         Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0 };
         stack<Traceback> terminals;
@@ -230,7 +256,6 @@ inline double needleman_wunsch(bool allow_bulge)
         TracebackAccumulator accumulator;
 
         set<AlignmentPosition,PositionOrder> activePositions;
-        activePositions.insert({1,1});
 
         map<Traceback*,stack<Matching>> matchesToEvaluate;
 
@@ -261,12 +286,11 @@ inline double needleman_wunsch(bool allow_bulge)
                     // should have a map from positions ->
                     // maximal scoring Traceback for given
                     // edit distance
-                    accumulator.accumulate( match );
                     AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition + 1 };
-                    toEvaluate.push( { match, nextPosition } );
+                    Matching nextMatch = { match, nextPosition };
+                    accumulator.accumulate( nextMatch );
+                    toEvaluate.push( nextMatch );
                     activePositions.insert( nextPosition );
-                } else if( rnaPosition == n ) {
-                    terminals.push( *match );
                 }
             }
 
@@ -275,12 +299,11 @@ inline double needleman_wunsch(bool allow_bulge)
             Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, 0, 0, 0 };
             if( constraint.satisfies(*insert) ){
                 if( rnaPosition + 1 <= n ){
-                    accumulator.accumulate( insert );
                     AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition };
-                    toEvaluate.push( { insert, nextPosition } );
+                    Matching nextMatch = { insert, nextPosition };
+                    accumulator.accumulate( nextMatch );
+                    toEvaluate.push( nextMatch );
                     activePositions.insert( nextPosition );
-                } else if( rnaPosition == n ) {
-                    terminals.push( *insert );
                 }
             }
 
@@ -288,12 +311,11 @@ inline double needleman_wunsch(bool allow_bulge)
             Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, 0, 0, 0 };
             if( constraint.satisfies(*dnaBulge) ){
                 if( dnaPosition + 1 <= m ){
-                    accumulator.accumulate( dnaBulge );
                     AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
-                    toEvaluate.push( { dnaBulge, nextPosition } );
+                    Matching nextMatch = { dnaBulge, nextPosition };
+                    accumulator.accumulate( nextMatch );
+                    toEvaluate.push( nextMatch );
                     activePositions.insert( nextPosition );
-                } else if( rnaPosition == n ) {
-                    terminals.push( *dnaBulge );
                 }
             }
 
@@ -303,22 +325,34 @@ inline double needleman_wunsch(bool allow_bulge)
                 if( activePositions.empty() ) {
                     break;
                 }
+                printf("need a refill\n  activepositions:\n");
+                for( auto it : activePositions ){
+                    printf("    %d %d\n", it.rnaPosition, it.dnaPosition );
+                }
                 auto position = activePositions.begin();
                 activePositions.erase( position );
                 AlignmentPosition activePosition = *position;
-                stack<Traceback*> activeTracebacks = accumulator.listMaxTracebacksAt( activePosition );
+//                if(activePosition.rnaPosition > 2 && activePosition.dnaPosition > 2) break;
+                printf("active: %d %d\n", activePosition.rnaPosition, activePosition.dnaPosition );
+                stack<Matching> activeTracebacks = accumulator.listMaxTracebacksAt( activePosition );
                 while(!activeTracebacks.empty()){
-                    Traceback* activeTraceback = activeTracebacks.top();
+                    printf("popped t\n");
+                    Matching activeMatch = activeTracebacks.top();
                     activeTracebacks.pop();
+                    matchings.push( activeMatch );
+                    /*
                     stack<Matching> activeMatches = matchesToEvaluate[activeTraceback];
                     while(!activeMatches.empty()){
+                        printf("  popped m\n");
                         Matching activeMatch = activeMatches.top();
                         activeMatches.pop();
                         matchings.push( activeMatch );
-                    }
+                        printf("pushing t id %d,  %d %d dist %d\n", activeMatch.previous->id, activeMatch.previous->alignmentPosition.rnaPosition, activeMatch.previous->alignmentPosition.dnaPosition, activeMatch.previous->edit_distance );
+                    }*/
                 }
             }
         }
+        stack<Traceback> terminals = accumulator.listMaxTerminalTracebacks(max_edit_distance);
         while( !terminals.empty() ) {
             Traceback traceback = terminals.top();
             terminals.pop();
