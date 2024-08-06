@@ -121,8 +121,9 @@ public:
         return max;
     }
 
-    stack<Traceback> listMaxTerminalTracebacks( int max_edit_distance ) {
+    stack<Traceback> listMaxTerminalTracebacks( int max_edit_distance, string FULL_DNA, map<string,double> pam_table, AlignmentConstraint constraint ) {
         stack<Traceback> max;
+        int full_dna_length = FULL_DNA.length();
         for(int i=0; i<= max_edit_distance; i++){
             Traceback* maxTrace = nullptr;
             for( const auto& entry : maxTraceback ){
@@ -130,11 +131,20 @@ public:
                 // TODO make sure that the dnaPosition is at least 3 shorter than DNA
                 // extract the PAM and score it
                 // use the combined score for tracking the maxTrace
-                if( key.alignmentPosition.rnaPosition == 20 && key.edit_distance == i) {
-                    if( maxTrace == nullptr ) {
-                        maxTrace = entry.second.previous;
-                    } else if( entry.second.previous->score > maxTrace->score){
-                        maxTrace = entry.second.previous;
+                if( key.alignmentPosition.rnaPosition == 21 && key.alignmentPosition.dnaPosition <= full_dna_length - 2 && key.edit_distance == i) {
+                    string pam = FULL_DNA.substr(key.alignmentPosition.dnaPosition,2);
+                    double pam_score = pam_table[pam];
+                    int pam_mm = 0;
+                    pam_mm += ( string(1,pam[0]) == "G" ? 0 : 1 );
+                    pam_mm += ( string(1,pam[1]) == "G" ? 0 : 1 );
+                    entry.second.previous->score += pam_score;
+                    entry.second.previous->edit_distance += pam_mm;
+                    if(constraint.satisfies(*entry.second.previous)){
+                        if( maxTrace == nullptr ) {
+                            maxTrace = entry.second.previous;
+                        } else if( entry.second.previous->score > maxTrace->score){
+                            maxTrace = entry.second.previous;
+                        }
                     }
                 }
             }
@@ -280,7 +290,7 @@ inline double needleman_wunsch(bool allow_bulge)
 
             Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, 0, 0, 0 };
             if( constraint.satisfies(*match) ){
-                if( ( rnaPosition + 1 <= n ) && ( dnaPosition + 1 <= m ) ) {
+                if( ( rnaPosition <= n ) && ( dnaPosition <= m ) ) {
                     // TODO rather than pushing like this
                     // should have a map from positions ->
                     // maximal scoring Traceback for given
@@ -289,7 +299,8 @@ inline double needleman_wunsch(bool allow_bulge)
                     Matching nextMatch = { match, nextPosition };
                     accumulator.accumulate( nextMatch );
                     toEvaluate.push( nextMatch );
-                    activePositions.insert( nextPosition );
+                    if( nextPosition.rnaPosition <= n )
+                        activePositions.insert( nextPosition );
                 }
             }
 
@@ -297,19 +308,22 @@ inline double needleman_wunsch(bool allow_bulge)
             // TODO the 0,0,0 should be the rna/dna/mm counts, based on previous and this
             Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, 0, 0, 0 };
             if( constraint.satisfies(*insert) ){
-                if( rnaPosition + 1 <= n ){
+                if( rnaPosition <= n ){
                     AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition };
                     Matching nextMatch = { insert, nextPosition };
                     accumulator.accumulate( nextMatch );
                     toEvaluate.push( nextMatch );
-                    activePositions.insert( nextPosition );
+                    if( nextPosition.rnaPosition <= n )
+                        activePositions.insert( nextPosition );
+                    else
+                        printf("skipping i %d %d\n", nextPosition.rnaPosition, nextPosition.dnaPosition);
                 }
             }
 
             double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
             Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, 0, 0, 0 };
             if( constraint.satisfies(*dnaBulge) ){
-                if( rnaPosition > 1 && dnaPosition + 1 <= m ){
+                if( rnaPosition > 1 && dnaPosition <= m ){
                     AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
                     Matching nextMatch = { dnaBulge, nextPosition };
                     accumulator.accumulate( nextMatch );
@@ -351,7 +365,7 @@ inline double needleman_wunsch(bool allow_bulge)
                 }
             }
         }
-        stack<Traceback> terminals = accumulator.listMaxTerminalTracebacks(max_edit_distance);
+        stack<Traceback> terminals = accumulator.listMaxTerminalTracebacks(max_edit_distance,FULL_DNA,pam_table,constraint);
         while( !terminals.empty() ) {
             Traceback traceback = terminals.top();
             terminals.pop();
