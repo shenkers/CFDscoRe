@@ -48,6 +48,19 @@ class AlignmentConstraint {
     int max_edit_distance;
 };
 
+class TracebackAccumulator {
+public:
+
+    TracebackAccumulator() { }
+
+    void accumulate(Traceback* traceback) {
+
+    }
+
+    map<tuple<int,int,int>,Traceback> maxTraceback;
+
+};
+
 struct Matching {
     Traceback* previous;
     AlignmentPosition alignmentPosition;
