@@ -65,6 +65,17 @@ struct TracebackKey {
     shared_ptr<tuple<int,int,int>> toTuple() const {
         return make_shared<tuple<int,int,int>>(make_tuple(alignmentPosition.rnaPosition, alignmentPosition.dnaPosition, edit_distance));
     }
+
+    TracebackKey(AlignmentPosition alignmentPosition, int edit_distance) : alignmentPosition(alignmentPosition), edit_distance(edit_distance) {}
+
+    TracebackKey(const tuple<int,int,int>& value) {
+        int rnaPosition = get<0>(value);
+        int dnaPosition = get<1>(value);
+        int edit_distance = get<2>(value);
+
+        alignmentPosition = { rnaPosition, dnaPosition };
+        this->edit_distance = edit_distance;
+    }
 };
 
 class TracebackAccumulator {
@@ -85,6 +96,18 @@ public:
         } else {
             maxTraceback[mapKey] = traceback;
         }
+    }
+
+    stack<Traceback*> listMaxTracebacksAt( AlignmentPosition alignmentPosition ) {
+        stack<Traceback*> max;
+        for( const auto& entry : maxTraceback ){
+            TracebackKey key = TracebackKey(entry.first);
+            if( key.alignmentPosition.rnaPosition == alignmentPosition.rnaPosition &&
+                key.alignmentPosition.dnaPosition == alignmentPosition.dnaPosition ) {
+                max.push( entry.second );
+            }
+        }
+        return max;
     }
 
     map<tuple<int,int,int>,Traceback*> maxTraceback;
@@ -200,6 +223,8 @@ inline double needleman_wunsch(bool allow_bulge)
             matchings.push( { &start, { 1, j } } );
         }
 
+        TracebackAccumulator accumulator;
+
         set<AlignmentPosition,PositionOrder> activePositions;
         activePositions.insert({1,1});
 
@@ -266,6 +291,23 @@ inline double needleman_wunsch(bool allow_bulge)
             }
 
             matchesToEvaluate[matching.previous] = toEvaluate;
+
+            if( matchings.empty() && !activePositions.empty() ) {
+                auto position = activePositions.begin();
+                activePositions.erase( position );
+                AlignmentPosition activePosition = *position;
+                stack<Traceback*> activeTracebacks = accumulator.listMaxTracebacksAt( activePosition );
+                while(!activeTracebacks.empty()){
+                    Traceback* activeTraceback = activeTracebacks.top();
+                    activeTracebacks.pop();
+                    stack<Matching> activeMatches = matchesToEvaluate[activeTraceback];
+                    while(!activeMatches.empty()){
+                        Matching activeMatch = activeMatches.top();
+                        activeMatches.pop();
+                        matchings.push( activeMatch );
+                    }
+                }
+            }
         }
         while( !terminals.empty() ) {
             Traceback traceback = terminals.top();
