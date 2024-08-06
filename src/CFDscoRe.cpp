@@ -246,7 +246,6 @@ inline double needleman_wunsch(bool allow_bulge)
         AlignmentConstraint constraint(max_edit_distance);
 
         Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0 };
-        stack<Traceback> terminals;
 
         queue<Matching> matchings;
         for( int j=1; j<=m; j++ ) {
