@@ -137,7 +137,7 @@ public:
                     auto traceback = make_shared<Traceback>(*entry.second.previous);
                     traceback->score += pam_score;
                     traceback->edit_distance += pam_mm;
-                    if(constraint.satisfies(*traceback)){
+                    if(traceback->score > -DBL_MAX && constraint.satisfies(*traceback)){
                         if( maxTrace == nullptr ) {
                             maxTrace = traceback;
                         } else if( traceback->score > maxTrace->score){
