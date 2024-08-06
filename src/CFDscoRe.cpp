@@ -48,13 +48,33 @@ class AlignmentConstraint {
     int max_edit_distance;
 };
 
+struct TracebackKey {
+    AlignmentPosition alignmentPosition;
+    int edit_distance;
+
+    shared_ptr<tuple<int,int,int>> toTuple() const {
+        return make_shared<tuple<int,int,int>>(make_tuple(alignmentPosition.rnaPosition, alignmentPosition.dnaPosition, edit_distance));
+    }
+};
+
 class TracebackAccumulator {
 public:
 
     TracebackAccumulator() { }
 
     void accumulate(Traceback* traceback) {
+        TracebackKey key = { traceback->alignmentPosition, traceback->edit_distance };
 
+        auto mapKey = *key.toTuple();
+
+        bool maxExists = maxTraceback.find(mapKey) != maxTraceback.end();
+        if( max != nullptr ) {
+            Traceback max = maxTraceback[mapKey];
+            if( max.score < traceback.score )
+                maxTraceback[mapKey] = traceback;
+        } else {
+            maxTraceback[mapKey] = traceback;
+        }
     }
 
     map<tuple<int,int,int>,Traceback> maxTraceback;
