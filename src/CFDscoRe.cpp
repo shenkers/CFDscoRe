@@ -309,7 +309,7 @@ inline double needleman_wunsch(bool allow_bulge)
             double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
             Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, 0, 0, 0 };
             if( constraint.satisfies(*dnaBulge) ){
-                if( dnaPosition + 1 <= m ){
+                if( rnaPosition > 1 && dnaPosition + 1 <= m ){
                     AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
                     Matching nextMatch = { dnaBulge, nextPosition };
                     accumulator.accumulate( nextMatch );
@@ -363,17 +363,15 @@ inline double needleman_wunsch(bool allow_bulge)
                 int rnaPosition = traceback.alignmentPosition.rnaPosition;
                 int dnaPosition = traceback.alignmentPosition.dnaPosition;
 
-                // TODO this will need to be reverse complemented
-
                 if( traceback.op != TracebackOp::Delete )
-                    rna += RNA[rnaPosition - 1];
+                    rna.insert(0,string(1,RNA[rnaPosition - 1]));
                 else
-                    rna += "-";
+                    rna.insert(0,"-");
 
                 if( traceback.op != TracebackOp::Insert )
-                    dna += DNA[dnaPosition - 1];
+                    dna.insert(0,string(1,DNA[dnaPosition - 1]));
                 else
-                    dna += "-";
+                    dna.insert(0,"-");
 
                 traceback = *traceback.previous;
                 if( !traceback.previous ) {
