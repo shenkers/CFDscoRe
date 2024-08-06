@@ -121,35 +121,33 @@ public:
         return max;
     }
 
-    stack<Traceback> listMaxTerminalTracebacks( int max_edit_distance, string FULL_DNA, map<string,double> pam_table, AlignmentConstraint constraint ) {
-        stack<Traceback> max;
+    stack<shared_ptr<Traceback>> listMaxTerminalTracebacks( int max_edit_distance, string FULL_DNA, map<string,double> pam_table, AlignmentConstraint constraint ) {
+        stack<shared_ptr<Traceback>> max;
         int full_dna_length = FULL_DNA.length();
         for(int i=0; i<= max_edit_distance; i++){
-            Traceback* maxTrace = nullptr;
+            shared_ptr<Traceback> maxTrace = nullptr;
             for( const auto& entry : maxTraceback ){
                 TracebackKey key = TracebackKey(entry.first);
-                // TODO make sure that the dnaPosition is at least 3 shorter than DNA
-                // extract the PAM and score it
-                // use the combined score for tracking the maxTrace
                 if( key.alignmentPosition.rnaPosition == 21 && key.alignmentPosition.dnaPosition <= full_dna_length - 2 && key.edit_distance == i) {
                     string pam = FULL_DNA.substr(key.alignmentPosition.dnaPosition,2);
                     double pam_score = pam_table[pam];
                     int pam_mm = 0;
                     pam_mm += ( string(1,pam[0]) == "G" ? 0 : 1 );
                     pam_mm += ( string(1,pam[1]) == "G" ? 0 : 1 );
-                    entry.second.previous->score += pam_score;
-                    entry.second.previous->edit_distance += pam_mm;
-                    if(constraint.satisfies(*entry.second.previous)){
+                    auto traceback = make_shared<Traceback>(*entry.second.previous);
+                    traceback->score += pam_score;
+                    traceback->edit_distance += pam_mm;
+                    if(constraint.satisfies(*traceback)){
                         if( maxTrace == nullptr ) {
-                            maxTrace = entry.second.previous;
-                        } else if( entry.second.previous->score > maxTrace->score){
-                            maxTrace = entry.second.previous;
+                            maxTrace = traceback;
+                        } else if( traceback->score > maxTrace->score){
+                            maxTrace = traceback;
                         }
                     }
                 }
             }
             if(maxTrace != nullptr)
-                max.push( *maxTrace );
+                max.push( maxTrace );
         }
         return max;
     }
@@ -308,7 +306,7 @@ inline double needleman_wunsch(bool allow_bulge)
             // TODO the 0,0,0 should be the rna/dna/mm counts, based on previous and this
             Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, 0, 0, 0 };
             if( constraint.satisfies(*insert) ){
-                if( rnaPosition <= n ){
+                if( rnaPosition > 1 && rnaPosition <= n ){
                     AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition };
                     Matching nextMatch = { insert, nextPosition };
                     accumulator.accumulate( nextMatch );
