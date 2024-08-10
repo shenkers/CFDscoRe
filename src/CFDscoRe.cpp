@@ -303,7 +303,6 @@ inline double needleman_wunsch(bool allow_bulge)
             }
 
             double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
-            // TODO the 0,0,0 should be the rna/dna/mm counts, based on previous and this
             Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, previous.n_rna_bulge + 1, previous.n_dna_bulge, previous.n_mismatch };
             if( constraint.satisfies(*insert) ){
                 if( rnaPosition > 1 && rnaPosition <= n ){
