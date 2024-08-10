@@ -96,20 +96,20 @@ public:
 
         auto mapKey = *key.toTuple();
 
-        bool maxExists = maxTraceback.find(mapKey) != maxTraceback.end();
+        bool maxExists = maxMatching.find(mapKey) != maxMatching.end();
         if( maxExists ) {
-            Matching max = maxTraceback[mapKey];
+            Matching max = maxMatching[mapKey];
             if( max.previous->score < traceback->score )
-                maxTraceback[mapKey] = matching;
+                maxMatching[mapKey] = matching;
         } else {
-            maxTraceback[mapKey] = matching;
+            maxMatching[mapKey] = matching;
         }
     }
 
     stack<Matching> listMaxTracebacksAt( AlignmentPosition alignmentPosition ) {
         stack<Matching> max;
         unordered_set<Traceback*> visited;
-        for( const auto& entry : maxTraceback ){
+        for( const auto& entry : maxMatching ){
             TracebackKey key = TracebackKey(entry.first);
             if( key.alignmentPosition.rnaPosition == alignmentPosition.rnaPosition &&
                 key.alignmentPosition.dnaPosition == alignmentPosition.dnaPosition ) {
@@ -127,8 +127,8 @@ public:
         stack<shared_ptr<Traceback>> max;
         int full_dna_length = FULL_DNA.length();
         for(int i=0; i<= max_edit_distance; i++){
-            shared_ptr<Traceback> maxTrace = nullptr;
-            for( const auto& entry : maxTraceback ){
+            shared_ptr<Traceback> maxTraceback = nullptr;
+            for( const auto& entry : maxMatching ){
                 TracebackKey key = TracebackKey(entry.first);
                 if( key.alignmentPosition.rnaPosition == 21 && key.alignmentPosition.dnaPosition <= full_dna_length - 2 && key.edit_distance == i) {
                     string pam = FULL_DNA.substr(key.alignmentPosition.dnaPosition,2);
@@ -140,21 +140,21 @@ public:
                     traceback->score += pam_score;
                     traceback->edit_distance += pam_mm;
                     if(traceback->score > -DBL_MAX && constraint.satisfies(*traceback)){
-                        if( maxTrace == nullptr ) {
-                            maxTrace = traceback;
-                        } else if( traceback->score > maxTrace->score){
-                            maxTrace = traceback;
+                        if( maxTraceback == nullptr ) {
+                            maxTraceback = traceback;
+                        } else if( traceback->score > maxTraceback->score){
+                            maxTraceback = traceback;
                         }
                     }
                 }
             }
-            if(maxTrace != nullptr)
-                max.push( maxTrace );
+            if(maxTraceback != nullptr)
+                max.push( maxTraceback );
         }
         return max;
     }
 
-    map<tuple<int,int,int>,Matching> maxTraceback;
+    map<tuple<int,int,int>,Matching> maxMatching;
 
 };
 
