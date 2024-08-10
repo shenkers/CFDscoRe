@@ -54,13 +54,15 @@ struct Matching {
 
 class AlignmentConstraint {
     public:
-    AlignmentConstraint( int max_edit_distance ) : max_edit_distance( max_edit_distance ) {}
+    AlignmentConstraint( int max_edit_distance, int max_bulge ) : max_edit_distance( max_edit_distance), max_bulge( max_bulge ) {}
 
     bool satisfies( const Traceback& traceback ){
-        return traceback.edit_distance <= max_edit_distance;
+        return traceback.edit_distance <= max_edit_distance &&
+            traceback.n_rna_bulge + traceback.n_dna_bulge <= max_bulge;
     }
 
     int max_edit_distance;
+    int max_bulge;
 };
 
 struct TracebackKey {
@@ -251,7 +253,8 @@ inline double needleman_wunsch(bool allow_bulge)
     }
     if(true){
         int max_edit_distance = 6;
-        AlignmentConstraint constraint(max_edit_distance);
+        int max_bulge = 2;
+        AlignmentConstraint constraint(max_edit_distance, max_bulge);
 
         Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0 };
 
@@ -282,11 +285,12 @@ inline double needleman_wunsch(bool allow_bulge)
 
             Traceback previous = *matching.previous;
 
-            int match_edit_dist = previous.edit_distance + (isMatch ? 0 : 1);
+            int mismatch_increase = isMatch ? 0 : 1;
+            int match_edit_dist = previous.edit_distance + mismatch_increase;
 
             stack<Matching> toEvaluate;
 
-            Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, 0, 0, 0 };
+            Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, 0, 0, previous.n_mismatch + mismatch_increase };
             if( constraint.satisfies(*match) ){
                 if( ( rnaPosition <= n ) && ( dnaPosition <= m ) ) {
                     // TODO rather than pushing like this
