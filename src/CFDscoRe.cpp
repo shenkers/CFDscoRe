@@ -354,15 +354,6 @@ inline double needleman_wunsch(bool allow_bulge)
                     Matching activeMatch = activeTracebacks.top();
                     activeTracebacks.pop();
                     matchings.push( activeMatch );
-                    /*
-                    stack<Matching> activeMatches = matchesToEvaluate[activeTraceback];
-                    while(!activeMatches.empty()){
-                        printf("  popped m\n");
-                        Matching activeMatch = activeMatches.top();
-                        activeMatches.pop();
-                        matchings.push( activeMatch );
-                        printf("pushing t id %d,  %d %d dist %d\n", activeMatch.previous->id, activeMatch.previous->alignmentPosition.rnaPosition, activeMatch.previous->alignmentPosition.dnaPosition, activeMatch.previous->edit_distance );
-                    }*/
                 }
             }
         }
