@@ -113,11 +113,7 @@ public:
             TracebackKey key = TracebackKey(entry.first);
             if( key.alignmentPosition.rnaPosition == alignmentPosition.rnaPosition &&
                 key.alignmentPosition.dnaPosition == alignmentPosition.dnaPosition ) {
-//                if(visited.find(entry.second->previous) == visited.end()){
-                    printf("  pushing traceback\n");
                     max.push( entry.second );
-//                    visited.insert( entry.second->previous );
-//                }
             }
         }
         return max;
@@ -314,8 +310,6 @@ inline double needleman_wunsch(bool allow_bulge)
                     toEvaluate.push( nextMatch );
                     if( nextPosition.rnaPosition <= n )
                         activePositions.insert( nextPosition );
-                    else
-                        printf("skipping i %d %d\n", nextPosition.rnaPosition, nextPosition.dnaPosition);
                 }
             }
 
@@ -339,18 +333,11 @@ inline double needleman_wunsch(bool allow_bulge)
                 if( activePositions.empty() ) {
                     break;
                 }
-                printf("need a refill\n  activepositions:\n");
-                for( auto it : activePositions ){
-                    printf("    %d %d\n", it.rnaPosition, it.dnaPosition );
-                }
                 auto position = activePositions.begin();
                 activePositions.erase( position );
                 AlignmentPosition activePosition = *position;
-//                if(activePosition.rnaPosition > 2 && activePosition.dnaPosition > 2) break;
-                printf("active: %d %d\n", activePosition.rnaPosition, activePosition.dnaPosition );
                 stack<Matching> activeTracebacks = accumulator.listMaxTracebacksAt( activePosition );
                 while(!activeTracebacks.empty()){
-                    printf("popped t\n");
                     Matching activeMatch = activeTracebacks.top();
                     activeTracebacks.pop();
                     matchings.push( activeMatch );
