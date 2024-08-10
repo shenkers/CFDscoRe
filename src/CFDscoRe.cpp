@@ -283,20 +283,16 @@ inline double needleman_wunsch(bool allow_bulge)
 
             double score_match = score_match_or_mismatch(rnaPosition, dnaPosition, rna, dna);
 
-            Traceback previous = *matching.previous;
+            Traceback& previous = *matching.previous;
 
             int mismatch_increase = isMatch ? 0 : 1;
             int match_edit_dist = previous.edit_distance + mismatch_increase;
 
             stack<Matching> toEvaluate;
 
-            Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, 0, 0, previous.n_mismatch + mismatch_increase };
+            Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, previous.n_rna_bulge, previous.n_dna_bulge, previous.n_mismatch + mismatch_increase };
             if( constraint.satisfies(*match) ){
                 if( ( rnaPosition <= n ) && ( dnaPosition <= m ) ) {
-                    // TODO rather than pushing like this
-                    // should have a map from positions ->
-                    // maximal scoring Traceback for given
-                    // edit distance
                     AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition + 1 };
                     Matching nextMatch = { match, nextPosition };
                     accumulator.accumulate( nextMatch );
@@ -308,7 +304,7 @@ inline double needleman_wunsch(bool allow_bulge)
 
             double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
             // TODO the 0,0,0 should be the rna/dna/mm counts, based on previous and this
-            Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, 0, 0, 0 };
+            Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, previous.n_rna_bulge + 1, previous.n_dna_bulge, previous.n_mismatch };
             if( constraint.satisfies(*insert) ){
                 if( rnaPosition > 1 && rnaPosition <= n ){
                     AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition };
@@ -323,7 +319,7 @@ inline double needleman_wunsch(bool allow_bulge)
             }
 
             double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
-            Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, 0, 0, 0 };
+            Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, previous.n_rna_bulge, previous.n_dna_bulge + 1, previous.n_mismatch };
             if( constraint.satisfies(*dnaBulge) ){
                 if( rnaPosition > 1 && dnaPosition <= m ){
                     AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
