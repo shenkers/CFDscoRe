@@ -363,10 +363,20 @@ inline double needleman_wunsch(bool allow_bulge)
             }
         }
         stack<shared_ptr<Traceback>> terminals = accumulator.listMaxTerminalTracebacks(max_edit_distance,FULL_DNA,pam_table,constraint);
+
+        shared_ptr<Traceback> maxTraceback = nullptr;
+
         while( !terminals.empty() ) {
-            Traceback traceback = *terminals.top();
-            printf("score %.2f (%.2f)\n", traceback.score, exp(traceback.score) );
+            shared_ptr<Traceback> traceback = terminals.top();
             terminals.pop();
+
+            if( maxTraceback == nullptr || maxTraceback->score < traceback->score )
+                maxTraceback = traceback;
+        }
+
+        if( maxTraceback ) {
+            Traceback traceback = *maxTraceback;
+            printf("score %.2f (%.2f)\n", traceback.score, exp(traceback.score) );
 
             string rna = "";
             string dna = "";
