@@ -302,6 +302,8 @@ inline double needleman_wunsch(bool allow_bulge)
                 }
             }
 
+            if(allow_bulge) {
+
             double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
             Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, previous.n_rna_bulge + 1, previous.n_dna_bulge, previous.n_mismatch };
             if( constraint.satisfies(*insert) ){
@@ -327,6 +329,8 @@ inline double needleman_wunsch(bool allow_bulge)
                     toEvaluate.push( nextMatch );
                     activePositions.insert( nextPosition );
                 }
+            }
+
             }
 
             matchesToEvaluate[matching.previous] = toEvaluate;
@@ -382,6 +386,7 @@ inline double needleman_wunsch(bool allow_bulge)
             string dna = "";
 
             while( true ) {
+                printf("op %d\n",traceback.op);
                 int rnaPosition = traceback.alignmentPosition.rnaPosition;
                 int dnaPosition = traceback.alignmentPosition.dnaPosition;
 
