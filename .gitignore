@@ -1,0 +1,5 @@
+.Rproj.user
+docs/*
+man/*
+**/*.so
+**/*.o
