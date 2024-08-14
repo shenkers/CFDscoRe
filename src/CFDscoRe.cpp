@@ -564,7 +564,7 @@ struct EditDistance {
 
 EditDistance get_edit_distance( string guide, string target, string pam ) {
     EditDistance distance = { 0, 0, 0, 0, 0 };
-    for( int i=0; i < guide.length(); i++ ) {
+    for( size_t i=0; i < guide.length(); i++ ) {
         string rna = string(1,guide[i]);
         string dna = string(1,target[i]);
         if( rna != dna ) {
