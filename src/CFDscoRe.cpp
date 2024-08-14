@@ -16,6 +16,8 @@
 #include <sstream>
 #include <cmath>
 #include <cfloat>
+#include <memory>
+#include <optional>
 #include <Rcpp.h>
 
 using namespace std;
