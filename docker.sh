@@ -9,13 +9,13 @@ if [ -n "$(git ls-files --others --exclude-standard)" ]; then
     is_dirty=true
 fi
 
-if git diff-index --quiet HEAD --; then
+if ! git diff-index --quiet HEAD --; then
     echo "There are modified files"
     is_dirty=true
 fi
 
 if [ "$is_dirty" = true ]; then
-    docker_tag=shenkers/cfdscore-dev
+    docker_tag=shenkers/cfdscore:dev
 else
     docker_tag=shenkers/cfdscore
     git_commit_sha=$(git rev-parse --short HEAD)
