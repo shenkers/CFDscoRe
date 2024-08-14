@@ -1,4 +1,3 @@
-#include <experimental/any>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -21,8 +20,6 @@
 #include <Rcpp.h>
 
 using namespace std;
-
-// [[Rcpp::plugins(cpp17)]]
 
 enum class TracebackOp { Match, Insert, Delete };
 
