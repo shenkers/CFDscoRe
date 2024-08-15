@@ -39,7 +39,7 @@ struct PositionOrder {
 };
 
 struct Traceback {
-    Traceback* previous;
+    shared_ptr<Traceback> previous;
     TracebackOp op;
     AlignmentPosition alignmentPosition;
     double score;
@@ -48,10 +48,32 @@ struct Traceback {
     int n_dna_bulge;
     int n_mismatch;
     string pam;
+
+    Traceback(
+    shared_ptr<Traceback> previous,
+    TracebackOp op,
+    AlignmentPosition alignmentPosition,
+    double score,
+    int edit_distance,
+    int n_rna_bulge,
+    int n_dna_bulge,
+    int n_mismatch,
+    string pam
+    ) :
+    previous(previous),
+    op(op),
+    alignmentPosition(alignmentPosition),
+    score(score),
+    edit_distance(edit_distance),
+    n_rna_bulge(n_rna_bulge),
+    n_dna_bulge(n_dna_bulge),
+    n_mismatch(n_mismatch),
+    pam(pam)
+    {}
 };
 
 struct Matching {
-    Traceback* previous;
+    shared_ptr<Traceback> previous;
     AlignmentPosition alignmentPosition;
 };
 
@@ -94,7 +116,7 @@ class TracebackAccumulator {
         TracebackAccumulator() { }
 
         void accumulate(Matching matching) {
-            Traceback* traceback = matching.previous;
+            shared_ptr<Traceback> traceback = matching.previous;
             TracebackKey key = { matching.alignmentPosition, traceback->edit_distance };
 
             auto mapKey = *key.toTuple();
@@ -111,7 +133,6 @@ class TracebackAccumulator {
 
         stack<Matching> listMaxTracebacksAt( AlignmentPosition alignmentPosition ) {
             stack<Matching> max;
-            unordered_set<Traceback*> visited;
             for( const auto& entry : maxMatching ){
                 TracebackKey key = TracebackKey(entry.first);
                 if( key.alignmentPosition.rnaPosition == alignmentPosition.rnaPosition &&
@@ -130,7 +151,7 @@ class TracebackAccumulator {
                 for( const auto& entry : maxMatching ){
                     TracebackKey key = TracebackKey(entry.first);
                     if( key.alignmentPosition.rnaPosition == 21 && key.alignmentPosition.dnaPosition <= full_dna_length - 2 && key.edit_distance == i) {
-                        auto traceback = make_shared<Traceback>(*entry.second.previous);
+                        auto traceback = entry.second.previous;
 
                         string pam = FULL_DNA.substr(key.alignmentPosition.dnaPosition,2);
                         traceback->pam = pam;
@@ -222,8 +243,6 @@ class Cas9Aligner {
         Cas9Aligner(string& GUIDE, string& TARGET)
             : RNA(GUIDE), FULL_DNA(TARGET) {
                 DNA = FULL_DNA.substr(0, FULL_DNA.length() - 3);
-                int n = RNA.length();
-                int m = DNA.length();
             }
 
         inline double score_match_or_mismatch( int i, int j, string rna, string dna) {
@@ -255,14 +274,14 @@ class Cas9Aligner {
 
             queue<Matching> matchings;
             for( int j=1; j<=m; j++ ) {
-                matchings.push( { &start, { 1, j } } );
+                matchings.push( { make_shared<Traceback>(start), { 1, j } } );
             }
 
             TracebackAccumulator accumulator;
 
             set<AlignmentPosition,PositionOrder> activePositions;
 
-            map<Traceback*,stack<Matching>> matchesToEvaluate;
+            map<shared_ptr<Traceback>,stack<Matching>> matchesToEvaluate;
 
             while( !matchings.empty() ) {
                 Matching matching = matchings.front();
@@ -285,7 +304,7 @@ class Cas9Aligner {
 
                 stack<Matching> toEvaluate;
 
-                Traceback* match = new Traceback{ matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, previous.n_rna_bulge, previous.n_dna_bulge, previous.n_mismatch + mismatch_increase, "" };
+                shared_ptr<Traceback> match = make_shared<Traceback>( matching.previous, TracebackOp::Match, matching.alignmentPosition, matching.previous->score + score_match, match_edit_dist, previous.n_rna_bulge, previous.n_dna_bulge, previous.n_mismatch + mismatch_increase, "" );
                 if( constraint.satisfies(*match) ){
                     if( ( rnaPosition <= n ) && ( dnaPosition <= m ) ) {
                         AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition + 1 };
@@ -299,10 +318,10 @@ class Cas9Aligner {
 
                 if(allow_bulge) {
 
-                        if( rnaPosition > 1 && rnaPosition <= n ){
-                    double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
-                    Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, previous.n_rna_bulge + 1, previous.n_dna_bulge, previous.n_mismatch, "" };
-                    if( constraint.satisfies(*insert) ){
+                    if( rnaPosition > 1 && rnaPosition <= n ){
+                        double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
+                        shared_ptr<Traceback> insert = make_shared<Traceback>( matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, previous.n_rna_bulge + 1, previous.n_dna_bulge, previous.n_mismatch, "" );
+                        if( constraint.satisfies(*insert) ){
                             AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition };
                             Matching nextMatch = { insert, nextPosition };
                             accumulator.accumulate( nextMatch );
@@ -312,10 +331,10 @@ class Cas9Aligner {
                         }
                     }
 
-                        if( rnaPosition > 1 && dnaPosition <= m ){
-                    double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
-                    Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, previous.n_rna_bulge, previous.n_dna_bulge + 1, previous.n_mismatch, "" };
-                    if( constraint.satisfies(*dnaBulge) ){
+                    if( rnaPosition > 1 && dnaPosition <= m ){
+                        double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
+                        shared_ptr<Traceback> dnaBulge = make_shared<Traceback>( matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, previous.n_rna_bulge, previous.n_dna_bulge + 1, previous.n_mismatch, "" );
+                        if( constraint.satisfies(*dnaBulge) ){
                             AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
                             Matching nextMatch = { dnaBulge, nextPosition };
                             accumulator.accumulate( nextMatch );
