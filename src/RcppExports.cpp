@@ -26,8 +26,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // private_optimal_alignment
-Rcpp::List private_optimal_alignment(Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::IntegerVector max_edit_distance, Rcpp::IntegerVector max_bulge, Rcpp::LogicalVector allow_bulge, Rcpp::LogicalVector search_both_strands);
-RcppExport SEXP _CFDscoRe_private_optimal_alignment(SEXP activity_scoresSEXP, SEXP querySEXP, SEXP genomeSEXP, SEXP max_edit_distanceSEXP, SEXP max_bulgeSEXP, SEXP allow_bulgeSEXP, SEXP search_both_strandsSEXP) {
+Rcpp::List private_optimal_alignment(Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::IntegerVector max_edit_distance, Rcpp::IntegerVector max_bulge, Rcpp::IntegerVector max_mismatch, Rcpp::LogicalVector allow_bulge, Rcpp::LogicalVector search_both_strands);
+RcppExport SEXP _CFDscoRe_private_optimal_alignment(SEXP activity_scoresSEXP, SEXP querySEXP, SEXP genomeSEXP, SEXP max_edit_distanceSEXP, SEXP max_bulgeSEXP, SEXP max_mismatchSEXP, SEXP allow_bulgeSEXP, SEXP search_both_strandsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -36,16 +36,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type genome(genomeSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type max_edit_distance(max_edit_distanceSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type max_bulge(max_bulgeSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type max_mismatch(max_mismatchSEXP);
     Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type allow_bulge(allow_bulgeSEXP);
     Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type search_both_strands(search_both_strandsSEXP);
-    rcpp_result_gen = Rcpp::wrap(private_optimal_alignment(activity_scores, query, genome, max_edit_distance, max_bulge, allow_bulge, search_both_strands));
+    rcpp_result_gen = Rcpp::wrap(private_optimal_alignment(activity_scores, query, genome, max_edit_distance, max_bulge, max_mismatch, allow_bulge, search_both_strands));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_CFDscoRe_private_cfd_score", (DL_FUNC) &_CFDscoRe_private_cfd_score, 5},
-    {"_CFDscoRe_private_optimal_alignment", (DL_FUNC) &_CFDscoRe_private_optimal_alignment, 7},
+    {"_CFDscoRe_private_optimal_alignment", (DL_FUNC) &_CFDscoRe_private_optimal_alignment, 8},
     {NULL, NULL, 0}
 };
 

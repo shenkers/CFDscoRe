@@ -125,8 +125,8 @@ score_deletes <- function(delete_positions){
 #' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 #' @name optimal_alignment
 #' @export
-optimal_alignment <- function(query, genome, max_edit_distance=6, max_bulge=2, allow_bulge = TRUE, search_both_strands = TRUE) {
-    private_optimal_alignment(package_state$activity_scores, query, genome, max_edit_distance[1], max_bulge[1], allow_bulge[1], search_both_strands[1])
+optimal_alignment <- function(query, genome, max_edit_distance=6, max_bulge=2, max_mismatch=4, allow_bulge = TRUE, search_both_strands = TRUE) {
+    private_optimal_alignment(package_state$activity_scores, query, genome, max_edit_distance[1], max_bulge[1], max_mismatch[1], allow_bulge[1], search_both_strands[1])
 }
 
 #' Fast CFD Score

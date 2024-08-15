@@ -79,15 +79,17 @@ struct Matching {
 
 class AlignmentConstraint {
     public:
-        AlignmentConstraint( int max_edit_distance, int max_bulge ) : max_edit_distance( max_edit_distance), max_bulge( max_bulge ) {}
+        AlignmentConstraint( int max_edit_distance, int max_bulge, int max_mismatch ) : max_edit_distance( max_edit_distance), max_bulge( max_bulge ), max_mismatch( max_mismatch ) {}
 
         bool satisfies( const Traceback& traceback ){
             return traceback.edit_distance <= max_edit_distance &&
-                traceback.n_rna_bulge + traceback.n_dna_bulge <= max_bulge;
+                traceback.n_rna_bulge + traceback.n_dna_bulge <= max_bulge &&
+                traceback.n_mismatch < max_mismatch;
         }
 
         int max_edit_distance;
         int max_bulge;
+        int max_mismatch;
 };
 
 struct TracebackKey {
@@ -263,12 +265,12 @@ class Cas9Aligner {
             return cfd_delete_score(i, dna);
         }
 
-        inline optional<Cas9Alignment> needleman_wunsch(int max_edit_distance, int max_bulge, bool allow_bulge)
+        inline optional<Cas9Alignment> needleman_wunsch(int max_edit_distance, int max_bulge, int max_mismatch, bool allow_bulge)
         {
             int n = RNA.length();
             int m = DNA.length();
 
-            AlignmentConstraint constraint(max_edit_distance, max_bulge);
+            AlignmentConstraint constraint(max_edit_distance, max_bulge, max_mismatch);
 
             Traceback start = { nullptr, TracebackOp::Match, { -1, -1 }, 0.0, 0, 0, 0, 0, "" };
 
@@ -523,25 +525,25 @@ double score_alignment(string guide, string genome, string pam, bool strict) {
     return log_score;
 }
 
-optional<Cas9Alignment> optimal_target(string guide, string genome, int max_edit_distance, int max_bulge, bool allow_bulge){
+optional<Cas9Alignment> optimal_target(string guide, string genome, int max_edit_distance, int max_bulge, int max_mismatch, bool allow_bulge){
 
     Cas9Aligner aligner = Cas9Aligner( guide, genome );
 
-    return aligner.needleman_wunsch(max_edit_distance, max_bulge, allow_bulge);
+    return aligner.needleman_wunsch(max_edit_distance, max_bulge, max_mismatch, allow_bulge);
 }
 
-optional<Cas9Alignment> optimal_fwd_rev_target(string guide, string genome, int max_edit_distance, int max_bulge, bool allow_bulge ){
+optional<Cas9Alignment> optimal_fwd_rev_target(string guide, string genome, int max_edit_distance, int max_bulge, int max_mismatch, bool allow_bulge ){
     double max_cfd = -DBL_MAX;
     optional<Cas9Alignment> optimal;
 
-    optional<Cas9Alignment> fwd = optimal_target( guide, genome, max_edit_distance, max_bulge, allow_bulge );
+    optional<Cas9Alignment> fwd = optimal_target( guide, genome, max_edit_distance, max_bulge, max_mismatch, allow_bulge );
     if(fwd.has_value()){
         fwd->strand = "+";
         optimal.emplace(fwd.value());
         max_cfd = fwd->log_score;
     }
 
-    optional<Cas9Alignment> rev = optimal_target( guide, reverse_complement(genome), max_edit_distance, max_bulge, allow_bulge );
+    optional<Cas9Alignment> rev = optimal_target( guide, reverse_complement(genome), max_edit_distance, max_bulge, max_mismatch, allow_bulge );
     if(rev.has_value() && rev->log_score > max_cfd ) {
         rev->strand = "-";
         optimal.emplace(rev.value());
@@ -551,10 +553,10 @@ optional<Cas9Alignment> optimal_fwd_rev_target(string guide, string genome, int 
     return optimal;
 }
 
-optional<Cas9Alignment> optimal_fwd_target(string guide, string genome, int max_edit_distance, int max_bulge, bool allow_bulge ){
+optional<Cas9Alignment> optimal_fwd_target(string guide, string genome, int max_edit_distance, int max_bulge, int max_mismatch, bool allow_bulge ){
     optional<Cas9Alignment> optimal;
 
-    optional<Cas9Alignment> fwd = optimal_target( guide, genome, max_edit_distance, max_bulge, allow_bulge );
+    optional<Cas9Alignment> fwd = optimal_target( guide, genome, max_edit_distance, max_bulge, max_mismatch, allow_bulge );
     if(fwd.has_value()){
         fwd->strand = "+";
         optimal.emplace(fwd.value());
@@ -663,7 +665,7 @@ Rcpp::List private_cfd_score( Rcpp::List activity_scores, Rcpp::CharacterVector 
 //' @return A data.frame will be returned with one row for each genome sequence provided, containing the optimal alignment and CFD score, and information about the location of the alignment.
 //' @name private_optimal_alignment
 // [[Rcpp::export]]
-Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::IntegerVector max_edit_distance, Rcpp::IntegerVector max_bulge, Rcpp::LogicalVector allow_bulge, Rcpp::LogicalVector search_both_strands ) {
+Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::CharacterVector query, Rcpp::CharacterVector genome, Rcpp::IntegerVector max_edit_distance, Rcpp::IntegerVector max_bulge, Rcpp::IntegerVector max_mismatch, Rcpp::LogicalVector allow_bulge, Rcpp::LogicalVector search_both_strands ) {
 
     mismatch_table = load_mismatch_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["mismatch"]) );
     insert_table = load_indel_table( Rcpp::as<Rcpp::DataFrame>(activity_scores["rna_bulge"]) );
@@ -704,9 +706,9 @@ Rcpp::List private_optimal_alignment( Rcpp::List activity_scores, Rcpp::Characte
 
         optional<Cas9Alignment> optimal;
         if( Rcpp::is_true(Rcpp::all(search_both_strands)) )
-            optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), max_edit_distance[0], max_bulge[0], Rcpp::is_true(Rcpp::all(allow_bulge)) );
+            optimal = optimal_fwd_rev_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), max_edit_distance[0], max_bulge[0], max_mismatch[0], Rcpp::is_true(Rcpp::all(allow_bulge)) );
         else
-            optimal = optimal_fwd_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), max_edit_distance[0], max_bulge[0], Rcpp::is_true(Rcpp::all(allow_bulge)) );
+            optimal = optimal_fwd_target( Rcpp::as<string>(query[0]), Rcpp::as<string>(genome[i]), max_edit_distance[0], max_bulge[0], max_mismatch[0], Rcpp::is_true(Rcpp::all(allow_bulge)) );
 
         if( optimal.has_value() ){
             guide[i] = optimal->guide;
