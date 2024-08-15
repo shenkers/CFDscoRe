@@ -299,10 +299,10 @@ class Cas9Aligner {
 
                 if(allow_bulge) {
 
+                        if( rnaPosition > 1 && rnaPosition <= n ){
                     double score_insert = score_insert_pos(rnaPosition, dnaPosition, rna);
                     Traceback* insert = new Traceback{ matching.previous, TracebackOp::Insert, matching.alignmentPosition, matching.previous->score + score_insert, matching.previous->edit_distance + 1, previous.n_rna_bulge + 1, previous.n_dna_bulge, previous.n_mismatch, "" };
                     if( constraint.satisfies(*insert) ){
-                        if( rnaPosition > 1 && rnaPosition <= n ){
                             AlignmentPosition nextPosition = { rnaPosition + 1, dnaPosition };
                             Matching nextMatch = { insert, nextPosition };
                             accumulator.accumulate( nextMatch );
@@ -312,10 +312,10 @@ class Cas9Aligner {
                         }
                     }
 
+                        if( rnaPosition > 1 && dnaPosition <= m ){
                     double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
                     Traceback* dnaBulge = new Traceback{ matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, previous.n_rna_bulge, previous.n_dna_bulge + 1, previous.n_mismatch, "" };
                     if( constraint.satisfies(*dnaBulge) ){
-                        if( rnaPosition > 1 && dnaPosition <= m ){
                             AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
                             Matching nextMatch = { dnaBulge, nextPosition };
                             accumulator.accumulate( nextMatch );
