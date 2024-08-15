@@ -224,38 +224,30 @@ class Cas9Aligner {
                 DNA = FULL_DNA.substr(0, FULL_DNA.length() - 3);
                 int n = RNA.length();
                 int m = DNA.length();
-                prefix_score = vector<vector<double>>( n+1, vector<double>( m+1, 0) );
-                traceback = vector<vector<TracebackOp>>( n+1, vector<TracebackOp>( m+1 ) );
             }
 
         inline double score_match_or_mismatch( int i, int j, string rna, string dna) {
             if ( rna == dna ) {
-                return prefix_score[i-1][j-1]; // no penalty if matches ( equivalent to previous + 0 )
+                return 0; // no penalty if matches ( equivalent to previous + 0 )
             } else {
-                return prefix_score[i-1][j-1] + cfd_mismatch_score( i, rna, dna );
+                return cfd_mismatch_score( i, rna, dna );
             }
         }
 
         // rna bulge
         inline double score_insert_pos( int i, int j, string rna) {
-            return prefix_score[i-1][j] + cfd_insert_score(i, rna);
+            return cfd_insert_score(i, rna);
         }
 
         // dna bulge
         inline double score_delete_pos( int i, int j, string dna) {
-            return prefix_score[i][j-1] + cfd_delete_score(i, dna);
+            return cfd_delete_score(i, dna);
         }
 
         inline optional<Cas9Alignment> needleman_wunsch(int max_edit_distance, int max_bulge, bool allow_bulge)
         {
             int n = RNA.length();
             int m = DNA.length();
-            for (int i=1;i<=n;i++) {
-                // if the score is constant on the margin (rather than increase
-                // with the offset) it won't penalize insertions/deletions
-                prefix_score[i][0] = -DBL_MAX;
-                traceback[i][0] = TracebackOp::Insert;
-            }
 
             AlignmentConstraint constraint(max_edit_distance, max_bulge);
 
@@ -341,8 +333,8 @@ class Cas9Aligner {
                         break;
                     }
                     auto position = activePositions.begin();
-                    activePositions.erase( position );
                     AlignmentPosition activePosition = *position;
+                    activePositions.erase( position );
                     stack<Matching> activeTracebacks = accumulator.listMaxTracebacksAt( activePosition );
                     while(!activeTracebacks.empty()){
                         Matching activeMatch = activeTracebacks.top();
@@ -407,8 +399,6 @@ class Cas9Aligner {
         string RNA;
         string DNA;
         string FULL_DNA;
-        vector<vector<double>> prefix_score;
-        vector<vector<TracebackOp>> traceback;
 };
 
 vector<map<string,double>> load_indel_table( Rcpp::DataFrame data_frame ) {
