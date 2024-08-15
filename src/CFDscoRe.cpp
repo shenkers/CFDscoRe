@@ -332,7 +332,7 @@ class Cas9Aligner {
                     }
 
                     if( rnaPosition > 1 && dnaPosition <= m ){
-                        double score_delete = score_delete_pos(rnaPosition, dnaPosition, dna);
+                        double score_delete = score_delete_pos(rnaPosition - 1, dnaPosition, dna);
                         shared_ptr<Traceback> dnaBulge = make_shared<Traceback>( matching.previous, TracebackOp::Delete, matching.alignmentPosition, matching.previous->score + score_delete, matching.previous->edit_distance + 1, previous.n_rna_bulge, previous.n_dna_bulge + 1, previous.n_mismatch, "" );
                         if( constraint.satisfies(*dnaBulge) ){
                             AlignmentPosition nextPosition = { rnaPosition, dnaPosition + 1 };
