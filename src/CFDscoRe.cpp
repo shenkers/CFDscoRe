@@ -95,20 +95,26 @@ class AlignmentConstraint {
 struct TracebackKey {
     AlignmentPosition alignmentPosition;
     int edit_distance;
+    int n_bulge;
+    int n_mismatch;
 
-    shared_ptr<tuple<int,int,int>> toTuple() const {
-        return make_shared<tuple<int,int,int>>(make_tuple(alignmentPosition.rnaPosition, alignmentPosition.dnaPosition, edit_distance));
+    shared_ptr<tuple<int,int,int,int,int>> toTuple() const {
+        return make_shared<tuple<int,int,int,int,int>>(make_tuple(alignmentPosition.rnaPosition, alignmentPosition.dnaPosition, edit_distance, n_bulge, n_mismatch));
     }
 
-    TracebackKey(AlignmentPosition alignmentPosition, int edit_distance) : alignmentPosition(alignmentPosition), edit_distance(edit_distance) {}
+    TracebackKey(AlignmentPosition alignmentPosition, int edit_distance, int n_bulge, int n_mismatch) : alignmentPosition(alignmentPosition), edit_distance(edit_distance), n_bulge(n_bulge), n_mismatch(n_mismatch) {}
 
-    TracebackKey(const tuple<int,int,int>& value) {
+    TracebackKey(const tuple<int,int,int,int,int>& value) {
         int rnaPosition = get<0>(value);
         int dnaPosition = get<1>(value);
         int edit_distance = get<2>(value);
+        int n_bulge = get<3>(value);
+        int n_mismatch = get<4>(value);
 
         alignmentPosition = { rnaPosition, dnaPosition };
         this->edit_distance = edit_distance;
+        this->n_bulge = n_bulge;
+        this->n_mismatch = n_mismatch;
     }
 };
 
@@ -119,7 +125,7 @@ class TracebackAccumulator {
 
         void accumulate(Matching matching) {
             shared_ptr<Traceback> traceback = matching.previous;
-            TracebackKey key = { matching.alignmentPosition, traceback->edit_distance };
+            TracebackKey key = { matching.alignmentPosition, traceback->edit_distance, traceback->n_rna_bulge + traceback->n_dna_bulge, traceback->n_mismatch };
 
             auto mapKey = *key.toTuple();
 
@@ -182,7 +188,7 @@ class TracebackAccumulator {
             return max;
         }
 
-        map<tuple<int,int,int>,Matching> maxMatching;
+        map<tuple<int,int,int,int,int>,Matching> maxMatching;
 
 };
 
