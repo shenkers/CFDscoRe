@@ -84,7 +84,7 @@ class AlignmentConstraint {
         bool satisfies( const Traceback& traceback ){
             return traceback.edit_distance <= max_edit_distance &&
                 traceback.n_rna_bulge + traceback.n_dna_bulge <= max_bulge &&
-                traceback.n_mismatch < max_mismatch;
+                traceback.n_mismatch <= max_mismatch;
         }
 
         int max_edit_distance;
